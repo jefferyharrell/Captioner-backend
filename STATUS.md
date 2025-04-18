@@ -4,20 +4,22 @@
 
 ## Project State
 - FastAPI backend for Captioner MVP is under active development.
-- Core endpoints are defined in SPEC.md and being implemented/tested.
+- Core endpoints are defined in SPEC.md but have not yet been implemented (TDD baseline only).
 - Pre-commit hooks (Ruff, Pyright, YAML, whitespace, etc.) are enforced locally and in CI.
-- CI runs on every push and PR to `main`, blocking merges on lint/type/test failures.
+- Pyright is now installed locally via npm, with configuration in pyproject.toml. The old pyrightconfig.json and third-party pre-commit hook have been removed.
+- Ruff is configured to ignore S101 (assert) in tests.
+- CI runs on every push and PR to `main`, blocking merges on lint/type/test/coverage failures. Pytest coverage is enforced at 90% minimum.
 - SQLite database, image, and thumbnail storage are in place.
 - Configuration is via environment variables only; no secrets in code.
 - Test-driven development (TDD) is strictly followed.
 
 ## What Works
-- Linting and static type checks enforced (Ruff, Pyright).
-- Pre-commit and CI integration are functional.
+- Linting and static type checks enforced (Ruff, local Pyright).
+- Pre-commit and CI integration are functional and up-to-date.
 - Project structure and configuration match SPEC.md v1.0.2.
 
 ## In Progress / Next Steps
-- Implementing and refining API endpoints per SPEC.md.
+- Implementing and refining API endpoints per SPEC.md (none implemented yet).
 - Expanding test coverage and ensuring DB/filesystem isolation in tests.
 - No search, ML, or user account features in MVP (see SPEC.md for scope).
 
