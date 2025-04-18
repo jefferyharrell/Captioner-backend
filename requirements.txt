@@ -1,2 +1,5 @@
 pre-commit
 ruff
+pytest
+pytest-cov
+httpx
