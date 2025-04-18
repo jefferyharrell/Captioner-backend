@@ -36,3 +36,7 @@ jobs:
           pip install -r requirements.txt
       - name: Run pre-commit hooks
         run: pre-commit run --all-files
+
+      - name: Run Pytest with coverage (fail if <90%)
+        run: |
+          pytest --cov=app --cov-report=term --cov-fail-under=90
