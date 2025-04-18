@@ -5,7 +5,16 @@ line-length = 88
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["D", "COM812"]
+per-file-ignores = {"tests/*.py" = ["S101"]}
 
 [tool.ruff.format]
 # This section is required if you want to use Ruff as a formatter (not needed for lint-only)
 # If you want Ruff to only error, not fix, just use the linter (as in your config)
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+reportMissingImports = true
+reportMissingTypeStubs = false
