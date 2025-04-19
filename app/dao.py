@@ -14,9 +14,6 @@ class PhotoDAO:
     def get(self, photo_id: int) -> Photo | None:
         return self.db.get(Photo, photo_id)
 
-    def get_by_hash(self, hash_: str) -> Photo | None:
-        return self.db.query(Photo).filter_by(hash=hash_).first()
-
     def list(self, limit: int = 100, offset: int = 0) -> Sequence[Photo]:
         return (
             self.db.query(Photo)
@@ -26,8 +23,8 @@ class PhotoDAO:
             .all()
         )
 
-    def create(self, hash_: str, filename: str, caption: str | None = None) -> Photo:
-        photo = Photo(hash=hash_, filename=filename, caption=caption)
+    def create(self, object_key: str, caption: str | None = None) -> Photo:
+        photo = Photo(object_key=object_key, caption=caption)
         self.db.add(photo)
         self.db.commit()
         self.db.refresh(photo)

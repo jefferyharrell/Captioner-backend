@@ -25,20 +25,20 @@ def test_photo_table_schema(in_memory_db: Session) -> None:
     # Ensure the table exists and columns are as expected
     inspector = inspect(in_memory_db.get_bind())
     column_names = {col["name"] for col in inspector.get_columns("photos")}
-    assert {"id", "hash", "filename", "caption"}.issubset(column_names)
+    assert {"id", "object_key", "caption"}.issubset(column_names)
 
 def test_insert_and_query_photo(in_memory_db: Session) -> None:
-    photo = Photo(hash="abc123", filename="foo.jpg", caption="A caption")
+    photo = Photo(object_key="photos/foo.jpg", caption="A caption")
     in_memory_db.add(photo)
     in_memory_db.commit()
-    found = in_memory_db.query(Photo).filter_by(hash="abc123").first()
+    found = in_memory_db.query(Photo).filter_by(object_key="photos/foo.jpg").first()
     assert found is not None
-    assert found.filename == "foo.jpg"
+    assert found.object_key == "photos/foo.jpg"
     assert found.caption == "A caption"
 
-def test_unique_hash_constraint(in_memory_db: Session) -> None:
-    photo1 = Photo(hash="dup", filename="bar.jpg")
-    photo2 = Photo(hash="dup", filename="baz.jpg")
+def test_unique_object_key_constraint(in_memory_db: Session) -> None:
+    photo1 = Photo(object_key="photos/bar.jpg")
+    photo2 = Photo(object_key="photos/bar.jpg")
     in_memory_db.add(photo1)
     in_memory_db.commit()
     in_memory_db.add(photo2)
@@ -46,9 +46,9 @@ def test_unique_hash_constraint(in_memory_db: Session) -> None:
         in_memory_db.commit()
 
 def test_nullable_caption(in_memory_db: Session) -> None:
-    photo = Photo(hash="no_caption", filename="baz.jpg", caption=None)
+    photo = Photo(object_key="photos/baz.jpg", caption=None)
     in_memory_db.add(photo)
     in_memory_db.commit()
-    found = in_memory_db.query(Photo).filter_by(hash="no_caption").first()
+    found = in_memory_db.query(Photo).filter_by(object_key="photos/baz.jpg").first()
     assert found is not None
     assert found.caption is None
