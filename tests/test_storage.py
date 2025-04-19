@@ -154,6 +154,57 @@ def test_dropbox_storage_get_photo(monkeypatch: pytest.MonkeyPatch) -> None:
         data = storage.get_photo("photo1.jpg")
         assert data == photo_bytes
 
+def test_dropbox_storage_pagination_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Simulate error on pagination (list_folder/continue)
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    page1 = {
+        "entries": [
+            {".tag": "file", "name": "photo1.jpg", "path_display": "/photos/photo1.jpg"}
+        ],
+        "has_more": True,
+        "cursor": "abc123",
+    }
+    def mock_post(
+        url: str,
+        _headers: dict[str, str] | None = None,
+        _json: dict[str, str] | None = None,
+        **_kwargs: object,
+    ) -> object:
+        if url.endswith("/files/list_folder"):
+            class MockRespList:
+                status_code = 200
+                def json(self) -> Mapping[str, object]:
+                    return page1
+            return MockRespList()
+        if url.endswith("/files/list_folder/continue"):
+            class MockRespContinue:
+                status_code = 401
+                text = "Unauthorized"
+                def json(self) -> Mapping[str, object]:
+                    return {}
+            return MockRespContinue()
+        msg = "Unexpected URL"
+        raise AssertionError(msg)
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        with pytest.raises(DropboxStorageError, match="Dropbox API error: 401"):
+            storage.list_photos()
+
+def test_photostorage_abstract_methods() -> None:
+    # Subclass implements but calls super, which raises NotImplementedError
+    class Dummy(PhotoStorage):
+        def list_photos(self) -> list[str]:
+            msg = "list_photos not implemented"
+            raise NotImplementedError(msg)
+        def get_photo(self, identifier: str) -> bytes:
+            msg = "get_photo not implemented"
+            raise NotImplementedError(msg)
+    dummy = Dummy()
+    with pytest.raises(NotImplementedError):
+        dummy.list_photos()
+    with pytest.raises(NotImplementedError):
+        dummy.get_photo("x")
+
 def test_dropbox_storage_list_photos_error(monkeypatch: pytest.MonkeyPatch) -> None:
     # Simulate Dropbox API error
     monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")

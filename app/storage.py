@@ -13,14 +13,16 @@ class PhotoStorage(ABC):
         """
         Return a list of photo identifiers (e.g., filenames or IDs).
         """
-        ...
+        msg = "list_photos not implemented"
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def get_photo(self, identifier: str) -> bytes:
         """
         Retrieve the raw bytes of the photo specified by identifier.
         """
-        ...
+        msg = "get_photo not implemented"
+        raise NotImplementedError(msg)
 
 
 class FileSystemStorage(PhotoStorage):
