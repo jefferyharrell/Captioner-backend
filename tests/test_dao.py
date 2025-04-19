@@ -51,3 +51,18 @@ def test_delete_photo(in_memory_db: Session) -> None:
     deleted = dao.delete(created.id)
     assert deleted is True
     assert dao.get(created.id) is None
+
+def test_get_by_hash_not_found(in_memory_db: Session) -> None:
+    dao = PhotoDAO(in_memory_db)
+    result = dao.get_by_hash("notarealhash")
+    assert result is None
+
+def test_update_caption_not_found(in_memory_db: Session) -> None:
+    dao = PhotoDAO(in_memory_db)
+    result = dao.update_caption(9999, "nope")
+    assert result is None
+
+def test_delete_not_found(in_memory_db: Session) -> None:
+    dao = PhotoDAO(in_memory_db)
+    result = dao.delete(9999)
+    assert result is False
