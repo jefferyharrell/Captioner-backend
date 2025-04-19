@@ -1,6 +1,6 @@
 # Backend Project Status – Captioner
 
-**Last updated:** 2025-04-19 08:11 PDT
+**Last updated:** 2025-04-19 08:43 PDT
 
 ## Project State
 
@@ -16,17 +16,20 @@
 - SQLite database, image, and thumbnail storage are in place.
 - Configuration is via environment variables only; no secrets in code.
 - Test-driven development (TDD) is strictly followed.
+- Photo storage abstraction interface (PhotoStorage) and initial tests added (TDD).
 
 ## What Works
 - Photo ORM and DAO layer are implemented, tested, and ready for API integration.
 - Linting and static type checks enforced (Ruff, local Pyright).
 - Pre-commit and CI integration are functional and up-to-date.
 - Project structure and configuration match SPEC.md v1.0.2.
+- Photo storage abstraction interface (`app/storage.py`) is defined and covered by tests.
 
 ## In Progress / Next Steps
 - Wire up Photo DAO/model to API endpoints per SPEC.md.
-- Expand test coverage as new features are added.
-- No search, ML, or user account features in MVP (see SPEC.md for scope).
+- Deploy and configure storage abstraction in FastAPI endpoints.
+- Implement DropboxStorage and S3Storage methods.
+- Expand test coverage to cover storage backend implementations.
 
 ## Known Gaps
 - Search and ML auto-captioning are out of MVP scope.
