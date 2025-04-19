@@ -6,6 +6,7 @@ import pytest
 
 from app.storage import (
     DropboxStorage,
+    DropboxStorageError,
     FileSystemStorage,
     PhotoStorage,
     S3Storage,
@@ -145,9 +146,6 @@ def test_dropbox_storage_list_photos_error(monkeypatch: pytest.MonkeyPatch) -> N
 
     with patch("requests.post", mock_post):
         storage = DropboxStorage()
-        import pytest
-
-        from app.storage import DropboxStorageError
         with pytest.raises(DropboxStorageError, match="Dropbox API error"):
             storage.list_photos()
 
@@ -169,11 +167,44 @@ def test_dropbox_storage_get_photo_not_found(monkeypatch: pytest.MonkeyPatch) ->
 
     with patch("requests.post", mock_post):
         storage = DropboxStorage()
-        import pytest
-
-        from app.storage import DropboxStorageError
         with pytest.raises(DropboxStorageError, match="Dropbox API error"):
             storage.get_photo("missing.jpg")
+
+def test_dropbox_storage_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DROPBOX_TOKEN", raising=False)
+    storage = DropboxStorage()
+    with pytest.raises(DropboxStorageError, match="DROPBOX_TOKEN env var is not set"):
+        storage.list_photos()
+    with pytest.raises(DropboxStorageError, match="DROPBOX_TOKEN env var is not set"):
+        storage.get_photo("anything.jpg")
+
+def test_dropbox_storage_list_photos_request_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    import requests
+    def mock_post(*args: object, **kwargs: object) -> object:
+        _ = args, kwargs
+        msg = "Simulated connection error"
+        raise requests.RequestException(msg)
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        with pytest.raises(DropboxStorageError, match="Dropbox API request failed"):
+            storage.list_photos()
+
+def test_dropbox_storage_get_photo_request_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    import requests
+    def mock_post(*args: object, **kwargs: object) -> object:
+        _ = args, kwargs
+        msg = "Simulated connection error"
+        raise requests.RequestException(msg)
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        with pytest.raises(DropboxStorageError, match="Dropbox API request failed"):
+            storage.get_photo("anything.jpg")
 
 
 def test_s3_storage_not_implemented() -> None:
