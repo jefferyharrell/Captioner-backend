@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy.exc import OperationalError
 
 from app.dao import PhotoDAO
 from app.database import Base, SessionLocal, engine
@@ -27,22 +28,23 @@ class RescanResponse(BaseModel):
 def get_photos(
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-) -> dict[str, list[str]]:
+) -> dict[str, list[int]]:
     """
     List photo IDs with pagination.
     Returns: {"photo_ids": [...]}
     """
+    db = SessionLocal()
     try:
-        backend = get_storage_backend()
-        photo_ids = backend.list_photos()
-    except Exception as exc:  # noqa: BLE001
-        return JSONResponse(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc)},
-        )  # type: ignore[return-value]
-    else:
-        paged = photo_ids[offset : offset + limit]
-        return {"photo_ids": paged}
+        dao = PhotoDAO(db)
+        try:
+            photos = dao.list(limit=limit, offset=offset)
+        except OperationalError:
+            photo_ids = []
+        else:
+            photo_ids = [photo.id for photo in photos]
+    finally:
+        db.close()
+    return {"photo_ids": photo_ids}
 
 @app.post("/rescan", response_model=RescanResponse)
 def rescan() -> RescanResponse | JSONResponse:
@@ -60,6 +62,13 @@ def rescan() -> RescanResponse | JSONResponse:
     else:
         # Sync storage with DB: insert any missing records
         db = SessionLocal()
+        # ensure tables exist for in-memory DB
+        try:
+            bind_engine = db.get_bind()
+        except AttributeError:
+            bind_engine = getattr(db, "bind", None)
+        if bind_engine is not None:
+            Base.metadata.create_all(bind=bind_engine)
         try:
             dao = PhotoDAO(db)
             # get existing records (limit equal to total storage count)
