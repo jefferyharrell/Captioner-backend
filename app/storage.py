@@ -57,22 +57,38 @@ class DropboxStorage(PhotoStorage):
     _NOT_FOUND_CODE = 409
     _TIMEOUT = 10  # seconds
 
-    def __init__(self) -> None:
-        # Configuration (e.g., access token) should be via env variables
+    def __init__(self, base_path: str = "") -> None:
+        """
+        Args:
+            base_path: The Dropbox folder to search from (default: root "").
+                      Can be specified with or without a leading '/'.
+        """
+        # Configuration (e.g., access token) via env variables
         self.token = os.getenv("DROPBOX_TOKEN")
+        # Normalize base_path to start with '/' if non-empty
+        if base_path and not base_path.startswith("/"):
+            base_path = "/" + base_path
+        self.base_path = base_path
 
     def list_photos(self) -> list[str]:
-        """Return a list of photo filenames from Dropbox folder '/photos'."""
+        """
+        Return a list of all JPEG and PNG photo paths (relative to root) in Dropbox,
+        recursively, starting from self.base_path.
+        """
+        import re
+
         import requests
+
         if not self.token:
             msg = "DROPBOX_TOKEN env var is not set"
             raise DropboxStorageError(msg)
+
         url = self._DROPBOX_LIST_FOLDER_URL
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
         }
-        data = {"path": "/photos", "recursive": False}
+        data = {"path": self.base_path, "recursive": True}
         try:
             resp = requests.post(
                 url, headers=headers, json=data, timeout=self._TIMEOUT
@@ -84,10 +100,14 @@ class DropboxStorage(PhotoStorage):
             error_message = f"Dropbox API error: {resp.status_code} {resp.text}"
             raise DropboxStorageError(error_message)
         result = resp.json()
+        image_pattern = re.compile(r"\.(jpe?g|png)$", re.IGNORECASE)
         return [
-            entry["name"]
+            entry["path_display"].lstrip("/")
             for entry in result.get("entries", [])
-            if entry.get(".tag") == "file"
+            if (
+                entry.get(".tag") == "file"
+                and image_pattern.search(entry.get("path_display", ""))
+            )
         ]
 
     def get_photo(self, identifier: str) -> bytes:

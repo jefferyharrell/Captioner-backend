@@ -1,8 +1,10 @@
+import os
 import pathlib
 from collections.abc import Mapping
 from unittest.mock import patch
 
 import pytest
+import requests
 
 from app.storage import (
     DropboxStorage,
@@ -77,6 +79,26 @@ def test_dropbox_storage_list_photos(monkeypatch: pytest.MonkeyPatch) -> None:
                 "name": "photo2.png",
                 "path_display": "/photos/photo2.png",
             },
+            {
+                ".tag": "file",
+                "name": "nested1.JPG",
+                "path_display": "/photos/2024/nested1.JPG",
+            },
+            {
+                ".tag": "file",
+                "name": "nested2.jpeg",
+                "path_display": "/photos/2024/events/nested2.jpeg",
+            },
+            {
+                ".tag": "file",
+                "name": "not_photo.txt",
+                "path_display": "/docs/not_photo.txt",
+            },
+            {
+                ".tag": "folder",
+                "name": "2024",
+                "path_display": "/photos/2024",
+            },
         ],
         "has_more": False,
     }
@@ -99,7 +121,13 @@ def test_dropbox_storage_list_photos(monkeypatch: pytest.MonkeyPatch) -> None:
     with patch("requests.post", mock_post):
         storage = DropboxStorage()
         photos = storage.list_photos()
-        assert set(photos) == {"photo1.jpg", "photo2.png"}
+        # Only JPEGs and PNGs, with full relative paths
+        assert set(photos) == {
+            "photos/photo1.jpg",
+            "photos/photo2.png",
+            "photos/2024/nested1.JPG",
+            "photos/2024/events/nested2.jpeg",
+        }
 
 def test_dropbox_storage_get_photo(monkeypatch: pytest.MonkeyPatch) -> None:
     # Mock Dropbox API response for downloading a file
@@ -221,6 +249,27 @@ def test_override_s3_backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("STORAGE_BACKEND", "s3")
     storage = get_storage_backend()
     assert isinstance(storage, S3Storage)
+
+
+@pytest.mark.skipif(
+    not os.getenv("DROPBOX_TOKEN"),
+    reason="No Dropbox token set; skipping live Dropbox API test."
+)
+def test_dropbox_live_list_folder() -> None:
+    """
+    Live test: Only runs if DROPBOX_TOKEN is set. Calls Dropbox API and checks
+    status code.
+    """
+    token = os.getenv("DROPBOX_TOKEN")
+    url = "https://api.dropboxapi.com/2/files/list_folder"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    data = {"path": "", "recursive": False}
+    resp = requests.post(url, headers=headers, json=data, timeout=10)
+    http_ok = 200
+    assert resp.status_code == http_ok
 
 
 def test_filesystem_storage_missing_path() -> None:
