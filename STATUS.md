@@ -1,13 +1,14 @@
 # Backend Project Status – Captioner
 
-**Last updated:** 2025-04-18
+**Last updated:** 2025-04-19 08:11 PDT
 
 ## Project State
 
 - Python virtual environment for the backend is set up and contains all required dependencies (FastAPI, SQLAlchemy, pytest, etc.).
 - The backend venv is located at `Captioner-backend/.venv`.
 - FastAPI backend for Captioner MVP is under active development.
-- Core endpoints are defined in SPEC.md but have not yet been implemented (TDD baseline only).
+- Photo SQLAlchemy 2.0 model and DAO layer implemented with full type annotations and TDD coverage.
+- Model and DAO are fully tested (pytest), type-checked (Pyright), and linted (Ruff/pre-commit).
 - Pre-commit hooks (Ruff, Pyright, YAML, whitespace, etc.) are enforced locally and in CI.
 - Pyright is now installed locally via npm, with configuration in pyproject.toml. The old pyrightconfig.json and third-party pre-commit hook have been removed.
 - Ruff is configured to ignore S101 (assert) in tests.
@@ -17,13 +18,14 @@
 - Test-driven development (TDD) is strictly followed.
 
 ## What Works
+- Photo ORM and DAO layer are implemented, tested, and ready for API integration.
 - Linting and static type checks enforced (Ruff, local Pyright).
 - Pre-commit and CI integration are functional and up-to-date.
 - Project structure and configuration match SPEC.md v1.0.2.
 
 ## In Progress / Next Steps
-- Implementing and refining API endpoints per SPEC.md (none implemented yet).
-- Expanding test coverage and ensuring DB/filesystem isolation in tests.
+- Wire up Photo DAO/model to API endpoints per SPEC.md.
+- Expand test coverage as new features are added.
 - No search, ML, or user account features in MVP (see SPEC.md for scope).
 
 ## Known Gaps
