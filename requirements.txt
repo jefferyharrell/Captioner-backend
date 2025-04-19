@@ -8,3 +8,4 @@ httpx
 sqlalchemy
 requests
 python-dotenv
+pydantic
