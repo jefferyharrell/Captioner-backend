@@ -24,16 +24,22 @@ class RescanResponse(BaseModel):
     status: str
     num_new_photos: int
 
-@app.get("/photos")
+@app.get("/photos", response_model=None)
 def get_photos(
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-) -> dict[str, list[int]]:
+) -> JSONResponse | dict[str, list[int]]:
     """
     List photo IDs with pagination.
     Returns: {"photo_ids": [...]}
     """
-    db = SessionLocal()
+    try:
+        db = SessionLocal()
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": str(exc)},
+        )
     try:
         dao = PhotoDAO(db)
         try:
