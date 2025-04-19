@@ -49,6 +49,9 @@ thumbnails/
 # Mac OS
 .DS_Store
 
+# Environment variables
+.env
+
 # Pre-commit
 .pre-commit/
 

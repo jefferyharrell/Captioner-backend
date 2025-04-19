@@ -7,3 +7,4 @@ pytest-cov
 httpx
 sqlalchemy
 requests
+python-dotenv
