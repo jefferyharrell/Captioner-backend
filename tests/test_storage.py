@@ -1,4 +1,6 @@
 import pathlib
+from collections.abc import Mapping
+from unittest.mock import patch
 
 import pytest
 
@@ -59,13 +61,119 @@ def test_unknown_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
         get_storage_backend()
 
 
-def test_dropbox_storage_not_implemented() -> None:
-    # DropboxStorage methods are unimplemented
-    storage = DropboxStorage()
-    with pytest.raises(NotImplementedError, match="list_photos not implemented"):
-        storage.list_photos()
-    with pytest.raises(NotImplementedError, match="get_photo not implemented"):
-        storage.get_photo("x")
+def test_dropbox_storage_list_photos(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Mock Dropbox API response for listing files
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    files_response = {
+        "entries": [
+            {
+                ".tag": "file",
+                "name": "photo1.jpg",
+                "path_display": "/photos/photo1.jpg",
+            },
+            {
+                ".tag": "file",
+                "name": "photo2.png",
+                "path_display": "/photos/photo2.png",
+            },
+        ],
+        "has_more": False,
+    }
+
+    def mock_post(
+        _url: str,
+        _headers: dict[str, str] | None = None,
+        _json: dict[str, str] | None = None,
+        **kwargs: object,
+    ) -> object:
+        _ = kwargs
+        class MockResponse:
+            def __init__(self) -> None:
+                self.status_code = 200
+            def json(self) -> Mapping[str, object]:
+                return files_response
+        assert _url.endswith("/files/list_folder")
+        return MockResponse()
+
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        photos = storage.list_photos()
+        assert set(photos) == {"photo1.jpg", "photo2.png"}
+
+def test_dropbox_storage_get_photo(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Mock Dropbox API response for downloading a file
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    photo_bytes = b"fake image data"
+
+    class MockResponse:
+        def __init__(self) -> None:
+            self.status_code = 200
+            self.content = photo_bytes
+
+    def mock_post(
+        _url: str,
+        _headers: dict[str, str] | None = None,
+        _data: object | None = None,
+        **kwargs: object,
+    ) -> object:
+        _ = kwargs
+        assert _url.endswith("/files/download")
+        return MockResponse()
+
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        data = storage.get_photo("photo1.jpg")
+        assert data == photo_bytes
+
+def test_dropbox_storage_list_photos_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Simulate Dropbox API error
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    def mock_post(
+        _url: str,
+        _headers: dict[str, str] | None = None,
+        _json: dict[str, str] | None = None,
+        **kwargs: object,
+    ) -> object:
+        _ = kwargs
+        class MockResponse:
+            def __init__(self) -> None:
+                self.status_code = 401
+                self.text = "Unauthorized"
+            def json(self) -> Mapping[str, object]:
+                return {"error": "Unauthorized"}
+        return MockResponse()
+
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        import pytest
+
+        from app.storage import DropboxStorageError
+        with pytest.raises(DropboxStorageError, match="Dropbox API error"):
+            storage.list_photos()
+
+def test_dropbox_storage_get_photo_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Simulate Dropbox API file not found
+    monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
+    def mock_post(
+        _url: str,
+        _headers: dict[str, str] | None = None,
+        _data: object | None = None,
+        **kwargs: object,
+    ) -> object:
+        _ = kwargs
+        class MockResponse:
+            def __init__(self) -> None:
+                self.status_code = 409
+                self.text = "File not found"
+        return MockResponse()
+
+    with patch("requests.post", mock_post):
+        storage = DropboxStorage()
+        import pytest
+
+        from app.storage import DropboxStorageError
+        with pytest.raises(DropboxStorageError, match="Dropbox API error"):
+            storage.get_photo("missing.jpg")
 
 
 def test_s3_storage_not_implemented() -> None:

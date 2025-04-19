@@ -42,22 +42,74 @@ class FileSystemStorage(PhotoStorage):
         return file_path.read_bytes()
 
 
+class DropboxStorageError(Exception):
+    """Custom exception for DropboxStorage errors."""
+
+
 class DropboxStorage(PhotoStorage):
     """
     Photo storage using Dropbox HTTP API.
     """
+
+    _DROPBOX_LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
+    _DROPBOX_DOWNLOAD_URL = "https://content.dropboxapi.com/2/files/download"
+    _SUCCESS_CODE = 200
+    _NOT_FOUND_CODE = 409
+    _TIMEOUT = 10  # seconds
 
     def __init__(self) -> None:
         # Configuration (e.g., access token) should be via env variables
         self.token = os.getenv("DROPBOX_TOKEN")
 
     def list_photos(self) -> list[str]:
-        msg = "DropboxStorage.list_photos not implemented"
-        raise NotImplementedError(msg)
+        """Return a list of photo filenames from Dropbox folder '/photos'."""
+        import requests
+        if not self.token:
+            msg = "DROPBOX_TOKEN env var is not set"
+            raise DropboxStorageError(msg)
+        url = self._DROPBOX_LIST_FOLDER_URL
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        data = {"path": "/photos", "recursive": False}
+        try:
+            resp = requests.post(
+                url, headers=headers, json=data, timeout=self._TIMEOUT
+            )
+        except requests.RequestException as exc:
+            error_message = f"Dropbox API request failed: {exc}"
+            raise DropboxStorageError(error_message) from exc
+        if resp.status_code != self._SUCCESS_CODE:
+            error_message = f"Dropbox API error: {resp.status_code} {resp.text}"
+            raise DropboxStorageError(error_message)
+        result = resp.json()
+        return [
+            entry["name"]
+            for entry in result.get("entries", [])
+            if entry.get(".tag") == "file"
+        ]
 
     def get_photo(self, identifier: str) -> bytes:
-        msg = "DropboxStorage.get_photo not implemented"
-        raise NotImplementedError(msg)
+        """Download photo bytes from Dropbox folder '/photos'."""
+        import requests
+        if not self.token:
+            msg = "DROPBOX_TOKEN env var is not set"
+            raise DropboxStorageError(msg)
+        url = self._DROPBOX_DOWNLOAD_URL
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Dropbox-API-Arg": f'{{"path": "/photos/{identifier}"}}',
+        }
+        try:
+            resp = requests.post(url, headers=headers, timeout=self._TIMEOUT)
+        except requests.RequestException as exc:
+            error_message = f"Dropbox API request failed: {exc}"
+            raise DropboxStorageError(error_message) from exc
+        if resp.status_code != self._SUCCESS_CODE:
+            error_message = f"Dropbox API error: {resp.status_code} {resp.text}"
+            raise DropboxStorageError(error_message)
+        return resp.content
 
 
 class S3Storage(PhotoStorage):
