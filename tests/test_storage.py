@@ -210,7 +210,6 @@ def test_dropbox_storage_list_photos_request_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
-    import requests
     def mock_post(*args: object, **kwargs: object) -> object:
         _ = args, kwargs
         msg = "Simulated connection error"
@@ -224,7 +223,6 @@ def test_dropbox_storage_get_photo_request_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("DROPBOX_TOKEN", "dummy-token")
-    import requests
     def mock_post(*args: object, **kwargs: object) -> object:
         _ = args, kwargs
         msg = "Simulated connection error"
@@ -260,13 +258,21 @@ def test_dropbox_live_list_folder() -> None:
     Live test: Only runs if DROPBOX_TOKEN is set. Calls Dropbox API and checks
     status code.
     """
+    from app.storage import DropboxStorage
+    storage = DropboxStorage()
+    photos = storage.list_photos()
+    print(f"Photos found on Dropbox at {storage.base_path or '/'} (JPEG/PNG only):")  # noqa: T201
+    for path in photos:
+        print(path)  # noqa: T201
+    # We still want to check API connectivity, so do a minimal API call for status
+    import os
     token = os.getenv("DROPBOX_TOKEN")
     url = "https://api.dropboxapi.com/2/files/list_folder"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    data = {"path": "", "recursive": False}
+    data = {"path": storage.base_path, "recursive": False}
     resp = requests.post(url, headers=headers, json=data, timeout=10)
     http_ok = 200
     assert resp.status_code == http_ok
