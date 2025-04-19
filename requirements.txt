@@ -5,3 +5,4 @@ ruff
 pytest
 pytest-cov
 httpx
+sqlalchemy
