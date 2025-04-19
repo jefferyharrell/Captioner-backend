@@ -3,6 +3,9 @@
 **Last updated:** 2025-04-18
 
 ## Project State
+
+- Python virtual environment for the backend is set up and contains all required dependencies (FastAPI, SQLAlchemy, pytest, etc.).
+- The backend venv is located at `Captioner-backend/.venv`.
 - FastAPI backend for Captioner MVP is under active development.
 - Core endpoints are defined in SPEC.md but have not yet been implemented (TDD baseline only).
 - Pre-commit hooks (Ruff, Pyright, YAML, whitespace, etc.) are enforced locally and in CI.
