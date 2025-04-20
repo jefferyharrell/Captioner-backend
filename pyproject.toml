@@ -20,3 +20,4 @@ reportMissingImports = true
 reportMissingTypeStubs = false
 include = ["app", "tests"]
 exclude = ["node_modules", ".venv"]
+extraPaths = ["typings"]
