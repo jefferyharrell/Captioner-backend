@@ -18,6 +18,6 @@ pythonVersion = "3.12"
 typeCheckingMode = "strict"
 reportMissingImports = true
 reportMissingTypeStubs = false
-include = ["app", "tests"]
+include = ["app", "tests", "typings"]
 exclude = ["node_modules", ".venv"]
 extraPaths = ["typings"]
