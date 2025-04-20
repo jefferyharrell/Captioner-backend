@@ -1,6 +1,7 @@
 [tool.ruff]
 target-version = "py312"
 line-length = 88
+exclude = ["typings"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -12,9 +13,11 @@ per-file-ignores = {"tests/*.py" = ["S101"]}
 # If you want Ruff to only error, not fix, just use the linter (as in your config)
 
 [tool.pyright]
-venvPath = "."
-venv = ".venv"
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 reportMissingImports = true
 reportMissingTypeStubs = false
+stubPath = "typings"
+include = ["app", "tests"]
+exclude = ["node_modules", ".venv"]
+extraPaths = ["typings"]
