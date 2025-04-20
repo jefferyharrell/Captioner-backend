@@ -19,7 +19,7 @@ from app.main import app
 def test_get_photos_returns_photo_ids() -> None:
     # Setup in-memory DB and override SessionLocal
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_get_photos_returns_photo_ids?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -42,7 +42,7 @@ def test_get_photos_returns_photo_ids() -> None:
 
 def test_get_photos_empty() -> None:
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_get_photos_empty?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -60,7 +60,7 @@ def test_get_photos_empty() -> None:
 
 def test_get_photos_pagination() -> None:
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_get_photos_pagination?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -99,7 +99,7 @@ def test_get_photos_storage_error() -> None:
 def test_get_photo_by_id_success() -> None:
     # Setup in-memory DB and override SessionLocal
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_get_photo_by_id_success?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -132,7 +132,7 @@ def test_get_photo_by_id_success() -> None:
 
 def test_get_photo_by_id_not_found() -> None:
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_get_photo_by_id_not_found?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -183,7 +183,7 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     class GenericError(Exception):
         pass
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_get_photo_by_id_generic_exception?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -244,7 +244,7 @@ def test_patch_photo_caption_success() -> None:
 
 def test_patch_photo_caption_not_found() -> None:
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_patch_photo_caption_not_found?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
