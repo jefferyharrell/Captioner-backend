@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Never, NoReturn
 
 import pytest
@@ -207,16 +206,16 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     assert "something went wrong!" in data["detail"]
 
 def test_patch_photo_caption_success() -> None:
-
-    db_path = "test_patch_caption.db"
-    db_path_obj = Path(db_path)
-    if db_path_obj.exists():
-        db_path_obj.unlink()
+    # Use a shared in-memory SQLite DB
+    db_url = (
+        "sqlite:///file:memdb_patch_caption?mode=memory&cache=shared&uri=true"
+    )
     engine = create_engine(
-        f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
+        db_url, connect_args={"check_same_thread": False}
     )
     Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    session_maker = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    session = session_maker()
     app.dependency_overrides[get_db] = lambda: session
 
     dao = PhotoDAO(session)
@@ -242,8 +241,6 @@ def test_patch_photo_caption_success() -> None:
     app.dependency_overrides.clear()
     session.close()
     engine.dispose()
-    if db_path_obj.exists():
-        db_path_obj.unlink()
 
 def test_patch_photo_caption_not_found() -> None:
     engine = create_engine(
