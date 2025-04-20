@@ -9,10 +9,10 @@ from app.database import Base
 
 
 @pytest.fixture
-
-def in_memory_db() -> Generator[Session, None, None]:
+def in_memory_db(request: pytest.FixtureRequest) -> Generator[Session, None, None]:
+    db_url = f"sqlite:///file:memdb_dao_{request.node.name}?mode=memory&cache=shared&uri=true"  # type: ignore[attr-defined]
     engine = create_engine(
-        "sqlite:///:memory:",
+        db_url,
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)

@@ -2,14 +2,15 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+from starlette.status import HTTP_404_NOT_FOUND
 
 from app.dao import PhotoDAO
 from app.deps import get_db
-from app.schemas import PhotoListResponse, PhotoResponse
+from app.schemas import CaptionUpdateRequest, PhotoListResponse, PhotoResponse
 
 router = APIRouter()
 
@@ -66,6 +67,40 @@ def get_photo(
         return JSONResponse(status_code=500, content={"detail": str(exc)})
     if photo is None:
         return JSONResponse(status_code=404, content={"detail": "Photo not found"})
+    return PhotoResponse(
+        id=photo.id,
+        object_key=photo.object_key,
+        caption=photo.caption,
+    )
+
+
+
+
+@router.patch("/photos/{photo_id}/caption", response_model=PhotoResponse)
+@handle_db_errors
+def patch_photo_caption(
+    photo_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    body: Annotated[CaptionUpdateRequest, Body(...)],
+) -> JSONResponse | PhotoResponse:
+    try:
+        dao = PhotoDAO(db)
+        photo = dao.update_caption(photo_id, body.caption)
+    except OperationalError:
+        return JSONResponse(
+            status_code=HTTP_404_NOT_FOUND,
+            content={"detail": "Photo not found"},
+        )
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(exc)},
+        )
+    if photo is None:
+        return JSONResponse(
+            status_code=HTTP_404_NOT_FOUND,
+            content={"detail": "Photo not found"},
+        )
     return PhotoResponse(
         id=photo.id,
         object_key=photo.object_key,

@@ -13,7 +13,7 @@ from app.models import Photo
 def in_memory_db() -> Generator[Session, None, None]:
     """Create a new database and session for each test."""
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_models?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
