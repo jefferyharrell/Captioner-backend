@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Annotated
 
 from dotenv import load_dotenv
@@ -49,8 +50,47 @@ def get_photos(
         else:
             photo_ids = [photo.id for photo in photos]
     finally:
-        db.close()
+        with suppress(Exception):
+            db.close()
     return {"photo_ids": photo_ids}
+
+@app.get("/photos/{photo_id}", response_model=None)
+def get_photo(photo_id: int) -> JSONResponse | dict[str, object]:
+    """
+    Retrieve photo metadata by ID.
+    Returns: {"id": int, "object_key": str, "caption": str | None}
+    """
+    db = None
+    try:
+        db = SessionLocal()
+        dao = PhotoDAO(db)
+        photo = dao.get(photo_id)
+    except OperationalError:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Photo not found"},
+        )
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": str(exc)},
+        )
+    finally:
+        with suppress(Exception):
+            if db is not None:
+                db.close()
+
+    if photo is None:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Photo not found"},
+        )
+
+    return {
+        "id": photo.id,
+        "object_key": photo.object_key,
+        "caption": photo.caption,
+    }
 
 @app.post("/rescan", response_model=RescanResponse)
 def rescan() -> RescanResponse | JSONResponse:
@@ -64,7 +104,7 @@ def rescan() -> RescanResponse | JSONResponse:
         return JSONResponse(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": str(exc)},
-        )  # type: ignore[return-value]
+        )
     else:
         # Sync storage with DB: insert any missing records
         db = SessionLocal()
@@ -85,7 +125,8 @@ def rescan() -> RescanResponse | JSONResponse:
                 dao.create(key)
             num_new = len(new_keys)
         finally:
-            db.close()
+            with suppress(Exception):
+                db.close()
         return RescanResponse(status="ok", num_new_photos=num_new)
 
 # Expose get_storage_backend for test monkeypatching
