@@ -7,6 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.database import Base, SessionLocal, engine
+from app.routers.login import router as login_router
 from app.routers.photos import router as photos_router
 from app.routers.rescan import router as rescan_router
 from app.storage import get_storage_backend
@@ -50,6 +51,7 @@ app.add_middleware(TestErrorMiddleware)
 
 app.include_router(photos_router)
 app.include_router(rescan_router)
+app.include_router(login_router)
 
 __all__ = [
     "HTTP_200_OK",
