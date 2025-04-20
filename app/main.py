@@ -53,6 +53,8 @@ app.include_router(photos_router)
 app.include_router(rescan_router)
 app.include_router(login_router)
 
+# Reminder: JWT_SECRET_KEY must be set in the environment for login/token auth
+
 __all__ = [
     "HTTP_200_OK",
     "HTTP_500_INTERNAL_SERVER_ERROR",

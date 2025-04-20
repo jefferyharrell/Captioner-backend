@@ -1,8 +1,23 @@
 from collections.abc import Generator
+from typing import Any
 
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
+from app.utils.jwt import decode_access_token
+
+security = HTTPBearer()
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),  # noqa: B008
+) -> dict[str, Any]:
+    """
+    Dependency to get the current user from a JWT bearer token.
+    Raises 401 if the token is invalid or missing.
+    """
+    return decode_access_token(credentials.credentials)
 
 
 def get_db() -> Generator[Session, None, None]:
