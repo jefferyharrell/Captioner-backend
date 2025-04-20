@@ -13,6 +13,7 @@ def dropbox_oauth_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DROPBOX_APP_KEY", "dummy-app-key")
     monkeypatch.setenv("DROPBOX_APP_SECRET", "dummy-app-secret")
     monkeypatch.setenv("DROPBOX_REFRESH_TOKEN", "dummy-refresh-token")
+    monkeypatch.setenv("DROPBOX_OAUTH_ENABLED", "1")
     monkeypatch.delenv("DROPBOX_TOKEN", raising=False)  # Ensure legacy token is not set
 
 def mock_oauth_token_success(
@@ -113,6 +114,7 @@ def test_dropbox_oauth_token_refresh_failure(
         DropboxStorage().list_photos()
 
 
+@pytest.mark.usefixtures("dropbox_oauth_env")
 def test_dropbox_oauth_missing_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Test DropboxStorage raises error if required OAuth env vars are missing.
