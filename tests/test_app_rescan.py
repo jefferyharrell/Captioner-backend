@@ -15,7 +15,7 @@ EXPECTED_NEW_PHOTOS = 3
 def test_rescan_success(monkeypatch: pytest.MonkeyPatch) -> None:
     # Setup in-memory DB
     engine = create_engine(
-        "sqlite:///:memory:",
+        "sqlite:///file:memdb_rescan_success?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
