@@ -25,11 +25,19 @@ class RescanResponse(BaseModel):
     status: str
     num_new_photos: int
 
-@app.get("/photos", response_model=None)
+class PhotoListResponse(BaseModel):
+    photo_ids: list[int]
+
+class PhotoResponse(BaseModel):
+    id: int
+    object_key: str
+    caption: str | None
+
+@app.get("/photos", response_model=PhotoListResponse)
 def get_photos(
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-) -> JSONResponse | dict[str, list[int]]:
+) -> JSONResponse | PhotoListResponse:
     """
     List photo IDs with pagination.
     Returns: {"photo_ids": [...]}
@@ -52,10 +60,10 @@ def get_photos(
     finally:
         with suppress(Exception):
             db.close()
-    return {"photo_ids": photo_ids}
+    return PhotoListResponse(photo_ids=photo_ids)
 
-@app.get("/photos/{photo_id}", response_model=None)
-def get_photo(photo_id: int) -> JSONResponse | dict[str, object]:
+@app.get("/photos/{photo_id}", response_model=PhotoResponse)
+def get_photo(photo_id: int) -> JSONResponse | PhotoResponse:
     """
     Retrieve photo metadata by ID.
     Returns: {"id": int, "object_key": str, "caption": str | None}
@@ -86,11 +94,11 @@ def get_photo(photo_id: int) -> JSONResponse | dict[str, object]:
             content={"detail": "Photo not found"},
         )
 
-    return {
-        "id": photo.id,
-        "object_key": photo.object_key,
-        "caption": photo.caption,
-    }
+    return PhotoResponse(
+        id=photo.id,
+        object_key=photo.object_key,
+        caption=photo.caption,
+    )
 
 @app.post("/rescan", response_model=RescanResponse)
 def rescan() -> RescanResponse | JSONResponse:
