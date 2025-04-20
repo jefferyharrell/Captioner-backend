@@ -2,6 +2,8 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+import requests
+
 
 class PhotoStorage(ABC):
     """
@@ -13,16 +15,16 @@ class PhotoStorage(ABC):
         """
         Return a list of photo identifiers (e.g., filenames or IDs).
         """
-        msg = "list_photos not implemented"
-        raise NotImplementedError(msg)
+        error_message = "list_photos not implemented"
+        raise NotImplementedError(error_message)
 
     @abstractmethod
     def get_photo(self, identifier: str) -> bytes:
         """
         Retrieve the raw bytes of the photo specified by identifier.
         """
-        msg = "get_photo not implemented"
-        raise NotImplementedError(msg)
+        error_message = "get_photo not implemented"
+        raise NotImplementedError(error_message)
 
 
 class FileSystemStorage(PhotoStorage):
@@ -67,8 +69,11 @@ class DropboxStorage(PhotoStorage):
                 DROPBOX_ROOT_PATH env var if set, else root ('').
                 Can be specified with or without a leading '/'.
         """
-        # Configuration (e.g., access token) via env variables
-        self.token = os.getenv("DROPBOX_TOKEN")
+        # static DROPBOX_TOKEN support removed; token always via OAuth refresh
+        self.token: str | None = None
+        self.app_key = os.getenv("DROPBOX_APP_KEY")
+        self.app_secret = os.getenv("DROPBOX_APP_SECRET")
+        self.refresh_token = os.getenv("DROPBOX_REFRESH_TOKEN")
         root_env = os.getenv("DROPBOX_ROOT_PATH", "")
         if not base_path:
             base_path = root_env
@@ -76,6 +81,34 @@ class DropboxStorage(PhotoStorage):
         if base_path and not base_path.startswith("/"):
             base_path = "/" + base_path
         self.base_path = base_path
+
+    def _refresh_token(self) -> None:
+        try:
+            resp = requests.post(
+                "https://api.dropbox.com/oauth2/token",
+                headers=None,
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": self.refresh_token,
+                    "client_id": self.app_key,
+                    "client_secret": self.app_secret,
+                },
+                timeout=self._TIMEOUT,
+            )
+        except requests.RequestException as exc:
+            error_message = f"Failed to obtain Dropbox access token: {exc}"
+            raise DropboxStorageError(error_message) from exc
+        if resp.status_code != self._SUCCESS_CODE:
+            error_message = (
+                f"Failed to obtain Dropbox access token: {resp.status_code} "
+                f"{resp.text}"
+            )
+            raise DropboxStorageError(error_message)
+        token_json = resp.json()
+        self.token = token_json.get("access_token")
+        if not self.token:
+            error_message = "Failed to obtain Dropbox access token"
+            raise DropboxStorageError(error_message)
 
     def list_photos(self) -> list[str]:
         """
@@ -86,10 +119,12 @@ class DropboxStorage(PhotoStorage):
 
         import requests
 
+        # acquire access token via refresh token
         if not self.token:
-            msg = "DROPBOX_TOKEN env var is not set"
-            raise DropboxStorageError(msg)
-
+            if not all([self.app_key, self.app_secret, self.refresh_token]):
+                error_message = "Dropbox OAuth credentials are not set"
+                raise DropboxStorageError(error_message)
+            self._refresh_token()
         url = self._DROPBOX_LIST_FOLDER_URL
         headers = {
             "Authorization": f"Bearer {self.token}",
@@ -150,9 +185,13 @@ class DropboxStorage(PhotoStorage):
     def get_photo(self, identifier: str) -> bytes:
         """Download photo bytes from Dropbox folder '/photos'."""
         import requests
+
+        # acquire access token via refresh token
         if not self.token:
-            msg = "DROPBOX_TOKEN env var is not set"
-            raise DropboxStorageError(msg)
+            if not all([self.app_key, self.app_secret, self.refresh_token]):
+                error_message = "Dropbox OAuth credentials are not set"
+                raise DropboxStorageError(error_message)
+            self._refresh_token()
         url = self._DROPBOX_DOWNLOAD_URL
         headers = {
             "Authorization": f"Bearer {self.token}",
@@ -179,12 +218,12 @@ class S3Storage(PhotoStorage):
         self.bucket = os.getenv("S3_BUCKET")
 
     def list_photos(self) -> list[str]:
-        msg = "S3Storage.list_photos not implemented"
-        raise NotImplementedError(msg)
+        error_message = "S3Storage.list_photos not implemented"
+        raise NotImplementedError(error_message)
 
     def get_photo(self, identifier: str) -> bytes:
-        msg = "S3Storage.get_photo not implemented"
-        raise NotImplementedError(msg)
+        error_message = "S3Storage.get_photo not implemented"
+        raise NotImplementedError(error_message)
 
 
 def get_storage_backend() -> PhotoStorage:
@@ -204,5 +243,5 @@ def get_storage_backend() -> PhotoStorage:
         return S3Storage()
     if backend in ("dropbox", ""):  # default
         return DropboxStorage()
-    err_msg = f"Unknown storage backend: {backend}"
-    raise ValueError(err_msg)
+    error_message = f"Unknown storage backend: {backend}"
+    raise ValueError(error_message)
