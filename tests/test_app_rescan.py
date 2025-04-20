@@ -3,14 +3,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app import main
 from app.database import Base
 from app.deps import get_db
 from app.main import app
 
-HTTP_200_OK = 200
-HTTP_500_INTERNAL_SERVER_ERROR = 500
 EXPECTED_NEW_PHOTOS = 3
 
 def test_rescan_success(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.database import Base, SessionLocal, engine
 from app.routers.photos import router as photos_router
@@ -47,7 +47,6 @@ app = FastAPI()
 # Add our test error middleware to catch dependency errors
 app.add_middleware(TestErrorMiddleware)
 
-HTTP_200_OK = 200
 
 app.include_router(photos_router)
 app.include_router(rescan_router)
