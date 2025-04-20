@@ -272,3 +272,96 @@ def test_patch_photo_caption_db_error() -> None:
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "detail" in data
+
+
+SHUFFLE_TOTAL = 5
+SHUFFLE_LIMIT = 3
+
+
+def test_get_photos_shuffled_returns_all_when_limit_exceeds_count() -> None:
+    engine = create_engine(
+        "sqlite:///file:memdb_photos_shuffled_all?mode=memory&cache=shared&uri=true",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    app.dependency_overrides[get_db] = lambda: session
+    dao = PhotoDAO(session)
+    ids = [
+        dao.create(object_key=f"img_{i}.jpg", caption=None).id
+        for i in range(SHUFFLE_TOTAL)
+    ]
+    client = TestClient(app)
+    response = client.get("/photos/shuffled?limit=100")
+    assert response.status_code == HTTP_200_OK
+    data = response.json()
+    assert sorted(data["photo_ids"]) == sorted(ids)
+    assert len(data["photo_ids"]) == SHUFFLE_TOTAL
+
+
+def test_get_photos_shuffled_respects_limit() -> None:
+    engine = create_engine(
+        "sqlite:///file:memdb_photos_shuffled_limit?mode=memory&cache=shared&uri=true",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    app.dependency_overrides[get_db] = lambda: session
+    dao = PhotoDAO(session)
+    [dao.create(object_key=f"img_{i}.jpg", caption=None) for i in range(10)]
+    client = TestClient(app)
+    response = client.get(f"/photos/shuffled?limit={SHUFFLE_LIMIT}")
+    assert response.status_code == HTTP_200_OK
+    data = response.json()
+    assert len(data["photo_ids"]) == SHUFFLE_LIMIT
+    # All IDs must be unique
+    assert len(set(data["photo_ids"])) == SHUFFLE_LIMIT
+
+
+def test_get_photos_shuffled_is_randomized() -> None:
+    engine = create_engine(
+        "sqlite:///file:memdb_photos_shuffled_random?mode=memory&cache=shared&uri=true",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    app.dependency_overrides[get_db] = lambda: session
+    dao = PhotoDAO(session)
+    [dao.create(object_key=f"img_{i}.jpg", caption=None) for i in range(SHUFFLE_TOTAL)]
+    client = TestClient(app)
+    orderings: set[tuple[int, ...]] = set()
+    for _ in range(5):
+        response = client.get(f"/photos/shuffled?limit={SHUFFLE_TOTAL}")
+        assert response.status_code == HTTP_200_OK
+        orderings.add(tuple(response.json()["photo_ids"]))
+    # At least two different orderings should be seen
+    assert len(orderings) > 1
+
+
+def test_get_photos_shuffled_empty_db() -> None:
+    engine = create_engine(
+        "sqlite:///file:memdb_photos_shuffled_empty?mode=memory&cache=shared&uri=true",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    app.dependency_overrides[get_db] = lambda: session
+    client = TestClient(app)
+    response = client.get("/photos/shuffled?limit=10")
+    assert response.status_code == HTTP_200_OK
+    data = response.json()
+    assert data["photo_ids"] == []
+
+
+def test_get_photos_shuffled_storage_error() -> None:
+    class BoomError(Exception):
+        pass
+    def bad_session() -> NoReturn:
+        msg = "db error"
+        raise BoomError(msg)
+    app.dependency_overrides[get_db] = bad_session
+    client = TestClient(app)
+    response = client.get(f"/photos/shuffled?limit={SHUFFLE_LIMIT}")
+    assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
+    data = response.json()
+    assert "detail" in data

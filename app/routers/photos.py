@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
+from random import shuffle
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Query
@@ -50,6 +51,26 @@ def get_photos(
         # DB session is closed by dependency
         pass
     return PhotoListResponse(photo_ids=photo_ids)
+
+
+@router.get("/photos/shuffled", response_model=PhotoListResponse)
+@handle_db_errors
+def get_photos_shuffled(
+    db: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+) -> JSONResponse | PhotoListResponse:
+    try:
+        dao = PhotoDAO(db)
+        try:
+            photos = dao.list(limit=1000, offset=0)
+        except OperationalError:
+            photo_ids: list[int] = []
+        else:
+            photo_ids = [photo.id for photo in photos]
+            shuffle(photo_ids)
+    finally:
+        pass
+    return PhotoListResponse(photo_ids=photo_ids[:limit])
 
 
 @router.get("/photos/{photo_id}", response_model=PhotoResponse)
