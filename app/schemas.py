@@ -14,3 +14,7 @@ class PhotoResponse(BaseModel):
     id: int
     object_key: str
     caption: str | None
+
+
+class CaptionUpdateRequest(BaseModel):
+    caption: str

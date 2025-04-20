@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Never, NoReturn
 
 import pytest
@@ -204,3 +205,73 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "something went wrong!" in data["detail"]
+
+def test_patch_photo_caption_success() -> None:
+
+    db_path = "test_patch_caption.db"
+    db_path_obj = Path(db_path)
+    if db_path_obj.exists():
+        db_path_obj.unlink()
+    engine = create_engine(
+        f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    app.dependency_overrides[get_db] = lambda: session
+
+    dao = PhotoDAO(session)
+    photo = dao.create(object_key="foo.jpg", caption=None)
+
+    client = TestClient(app)
+    response = client.patch(
+        f"/photos/{photo.id}/caption",
+        json={"caption": "A new caption!"},
+    )
+    assert response.status_code == HTTP_200_OK
+
+    data = response.json()
+    assert data["id"] == photo.id
+    assert data["caption"] == "A new caption!"
+
+    # Confirm in DB
+    updated = dao.get(photo.id)
+    assert updated is not None
+    assert updated.caption == "A new caption!"
+
+    # Clean up
+    app.dependency_overrides.clear()
+    session.close()
+    engine.dispose()
+    if db_path_obj.exists():
+        db_path_obj.unlink()
+
+def test_patch_photo_caption_not_found() -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+    )()
+    app.dependency_overrides[get_db] = lambda: session
+    client = TestClient(app)
+    response = client.patch("/photos/123/caption", json={"caption": "Doesn't exist"})
+    assert response.status_code == HTTP_404_NOT_FOUND
+    data = response.json()
+    assert data["detail"] == "Photo not found"
+
+def test_patch_photo_caption_db_error() -> None:
+    class BoomError(Exception):
+        pass
+    def bad_session() -> NoReturn:
+        msg = "db error"
+        raise BoomError(msg)
+    app.dependency_overrides[get_db] = bad_session
+    client = TestClient(app)
+    response = client.patch("/photos/1/caption", json={"caption": "irrelevant"})
+    assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
+    data = response.json()
+    assert "detail" in data
