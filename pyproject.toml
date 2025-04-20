@@ -12,8 +12,6 @@ per-file-ignores = {"tests/*.py" = ["S101"]}
 # If you want Ruff to only error, not fix, just use the linter (as in your config)
 
 [tool.pyright]
-venvPath = "."
-venv = ".venv"
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 reportMissingImports = true
