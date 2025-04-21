@@ -27,10 +27,10 @@ DROPBOX_API_URL = "https://api.dropboxapi.com/2/file_properties/templates/add_fo
 DROPBOX_LIST_TEMPLATES_URL = "https://api.dropboxapi.com/2/file_properties/templates/list_for_user"
 DROPBOX_TOKEN_URL = "https://api.dropbox.com/oauth2/token"  # noqa: S105
 
-TEMPLATE_NAME = "PhotoTags"
-TEMPLATE_DESCRIPTION = "Stores photo tags for Captioner app."
-FIELD_NAME = "tags"
-FIELD_DESCRIPTION = "Tags for this photo."
+TEMPLATE_NAME = "CaptionerPhotoTags"
+TEMPLATE_DESCRIPTION = "Stores photo captions for Captioner app."
+FIELD_NAME = "caption"
+FIELD_DESCRIPTION = "Caption for this photo."
 FIELD_TYPE = "string"
 
 HTTP_OK = 200

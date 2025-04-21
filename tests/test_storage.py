@@ -224,6 +224,15 @@ def test_photostorage_abstract_methods() -> None:
         def get_photo(self, identifier: str) -> bytes:
             msg = "get_photo not implemented"
             raise NotImplementedError(msg)
+        def get_caption(self, object_key: str) -> str | None:
+            msg = "get_caption not implemented"
+            raise NotImplementedError(msg)
+        def set_caption(self, object_key: str, caption: str) -> None:
+            msg = "set_caption not implemented"
+            raise NotImplementedError(msg)
+        def delete_caption(self, object_key: str) -> None:
+            msg = "delete_caption not implemented"
+            raise NotImplementedError(msg)
     dummy = Dummy()
     with pytest.raises(NotImplementedError):
         dummy.list_photos()

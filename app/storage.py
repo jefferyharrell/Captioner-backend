@@ -26,6 +26,30 @@ class PhotoStorage(ABC):
         error_message = "get_photo not implemented"
         raise NotImplementedError(error_message)
 
+    @abstractmethod
+    def get_caption(self, object_key: str) -> str | None:
+        """
+        Retrieve the caption for the specified photo.
+        """
+        error_message = "get_caption not implemented"
+        raise NotImplementedError(error_message)
+
+    @abstractmethod
+    def set_caption(self, object_key: str, caption: str) -> None:
+        """
+        Set or update the caption for the specified photo.
+        """
+        error_message = "set_caption not implemented"
+        raise NotImplementedError(error_message)
+
+    @abstractmethod
+    def delete_caption(self, object_key: str) -> None:
+        """
+        Delete the caption for the specified photo.
+        """
+        error_message = "delete_caption not implemented"
+        raise NotImplementedError(error_message)
+
 
 class FileSystemStorage(PhotoStorage):
     """
@@ -45,6 +69,27 @@ class FileSystemStorage(PhotoStorage):
         file_path = self.base_path / identifier
         return file_path.read_bytes()
 
+    def get_caption(self, object_key: str) -> str | None:
+        """
+        Filesystem storage does not implement captions (MVP: Dropbox only).
+        """
+        error_message = "get_caption not implemented for FileSystemStorage"
+        raise NotImplementedError(error_message)
+
+    def set_caption(self, object_key: str, caption: str) -> None:
+        """
+        Filesystem storage does not implement captions (MVP: Dropbox only).
+        """
+        error_message = "set_caption not implemented for FileSystemStorage"
+        raise NotImplementedError(error_message)
+
+    def delete_caption(self, object_key: str) -> None:
+        """
+        Filesystem storage does not implement captions (MVP: Dropbox only).
+        """
+        error_message = "delete_caption not implemented for FileSystemStorage"
+        raise NotImplementedError(error_message)
+
 
 class DropboxStorageError(Exception):
     """Custom exception for DropboxStorage errors."""
@@ -53,14 +98,126 @@ class DropboxStorageError(Exception):
 class DropboxStorage(PhotoStorage):
     """
     Photo storage using Dropbox HTTP API.
+    Implements caption CRUD using Dropbox file properties API.
     """
 
     _DROPBOX_LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
     _DROPBOX_LIST_FOLDER_CONTINUE_URL = "https://api.dropboxapi.com/2/files/list_folder/continue"
     _DROPBOX_DOWNLOAD_URL = "https://content.dropboxapi.com/2/files/download"
+    _DROPBOX_PROPERTIES_GET_URL = "https://api.dropboxapi.com/2/file_properties/properties/get"
+    _DROPBOX_PROPERTIES_OVERWRITE_URL = "https://api.dropboxapi.com/2/file_properties/properties/overwrite"
+    _DROPBOX_PROPERTIES_REMOVE_URL = "https://api.dropboxapi.com/2/file_properties/properties/remove"
+    _TEMPLATE_NAME = "CaptionerPhotoTags"
+    _FIELD_NAME = "caption"
     _SUCCESS_CODE = 200
     _NOT_FOUND_CODE = 409
     _TIMEOUT = 10  # seconds
+
+    def get_caption(self, object_key: str) -> str | None:
+        """
+        Retrieve the caption for the specified photo from Dropbox file properties.
+        Returns the caption string if present, or None if not set.
+        """
+        if not self.token:
+            if not all([self.app_key, self.app_secret, self.refresh_token]):
+                error_message = "Dropbox OAuth credentials are not set"
+                raise DropboxStorageError(error_message)
+            self._refresh_token()
+        url = self._DROPBOX_PROPERTIES_GET_URL
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "path": f"/{object_key}",
+            "property_templates": [self._TEMPLATE_NAME],
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
+        except requests.RequestException as exc:
+            error_message = f"Dropbox API request failed: {exc}"
+            raise DropboxStorageError(error_message) from exc
+        if resp.status_code != self._SUCCESS_CODE:
+            # If the properties are missing, treat as no caption
+            if resp.status_code == self._NOT_FOUND_CODE:
+                return None
+            error_message = f"Dropbox API error: {resp.status_code} {resp.text}"
+            raise DropboxStorageError(error_message)
+        result = resp.json()
+        for prop in result.get("property_groups", []):
+            if (
+                prop.get("template_id") == self._TEMPLATE_NAME
+                or prop.get("template_name") == self._TEMPLATE_NAME
+            ):
+                for field in prop.get("fields", []):
+                    if field.get("name") == self._FIELD_NAME:
+                        return field.get("value")
+        return None
+
+    def set_caption(self, object_key: str, caption: str) -> None:
+        """
+        Set or update the caption for the specified photo in Dropbox file properties.
+        """
+        if not self.token:
+            if not all([self.app_key, self.app_secret, self.refresh_token]):
+                error_message = "Dropbox OAuth credentials are not set"
+                raise DropboxStorageError(error_message)
+            self._refresh_token()
+        url = self._DROPBOX_PROPERTIES_OVERWRITE_URL
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "path": f"/{object_key}",
+            "property_groups": [
+                {
+                    "template_id": self._TEMPLATE_NAME,
+                    "fields": [
+                        {"name": self._FIELD_NAME, "value": caption}
+                    ],
+                }
+            ],
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
+        except requests.RequestException as exc:
+            error_message = f"Dropbox API request failed: {exc}"
+            raise DropboxStorageError(error_message) from exc
+        if resp.status_code != self._SUCCESS_CODE:
+            error_message = f"Dropbox API error: {resp.status_code} {resp.text}"
+            raise DropboxStorageError(error_message)
+
+    def delete_caption(self, object_key: str) -> None:
+        """
+        Delete the caption for the specified photo from Dropbox file properties.
+        """
+        if not self.token:
+            if not all([self.app_key, self.app_secret, self.refresh_token]):
+                error_message = "Dropbox OAuth credentials are not set"
+                raise DropboxStorageError(error_message)
+            self._refresh_token()
+        url = self._DROPBOX_PROPERTIES_REMOVE_URL
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "path": f"/{object_key}",
+            "property_template_id": self._TEMPLATE_NAME,
+            "property_field_names": [self._FIELD_NAME],
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
+        except requests.RequestException as exc:
+            error_message = f"Dropbox API request failed: {exc}"
+            raise DropboxStorageError(error_message) from exc
+        if resp.status_code != self._SUCCESS_CODE:
+            # If the field is already missing, treat as success
+            if resp.status_code == self._NOT_FOUND_CODE:
+                return
+            error_message = f"Dropbox API error: {resp.status_code} {resp.text}"
+            raise DropboxStorageError(error_message)
 
     def __init__(self, base_path: str = "") -> None:
         """
@@ -211,6 +368,7 @@ class DropboxStorage(PhotoStorage):
 class S3Storage(PhotoStorage):
     """
     Photo storage using Amazon S3 HTTP API.
+    S3 backend is post-MVP and not implemented.
     """
 
     def __init__(self) -> None:
@@ -223,6 +381,27 @@ class S3Storage(PhotoStorage):
 
     def get_photo(self, identifier: str) -> bytes:
         error_message = "S3Storage.get_photo not implemented"
+        raise NotImplementedError(error_message)
+
+    def get_caption(self, object_key: str) -> str | None:
+        """
+        S3 backend is post-MVP and does not implement captions.
+        """
+        error_message = "get_caption not implemented for S3Storage"
+        raise NotImplementedError(error_message)
+
+    def set_caption(self, object_key: str, caption: str) -> None:
+        """
+        S3 backend is post-MVP and does not implement captions.
+        """
+        error_message = "set_caption not implemented for S3Storage"
+        raise NotImplementedError(error_message)
+
+    def delete_caption(self, object_key: str) -> None:
+        """
+        S3 backend is post-MVP and does not implement captions.
+        """
+        error_message = "delete_caption not implemented for S3Storage"
         raise NotImplementedError(error_message)
 
 
