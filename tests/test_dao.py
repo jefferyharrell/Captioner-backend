@@ -21,11 +21,11 @@ def in_memory_db(request: pytest.FixtureRequest) -> Generator[Session, None, Non
 
 def test_create_and_get_photo(in_memory_db: Session) -> None:
     dao = PhotoDAO(in_memory_db)
-    created = dao.create(object_key="photos/dao.jpg", caption="DAO test")
+    created = dao.create(object_key="photos/dao.jpg", description="DAO test")
     fetched = dao.get(created.id)
     assert fetched is not None
     assert fetched.object_key == "photos/dao.jpg"
-    assert fetched.caption == "DAO test"
+    assert fetched.description == "DAO test"
 
 def test_list_photos(in_memory_db: Session) -> None:
     dao = PhotoDAO(in_memory_db)
@@ -37,12 +37,12 @@ def test_list_photos(in_memory_db: Session) -> None:
     object_keys = {p.object_key for p in photos}
     assert {"photos/one.jpg", "photos/two.jpg"}.issubset(object_keys)
 
-def test_update_caption(in_memory_db: Session) -> None:
+def test_update_description(in_memory_db: Session) -> None:
     dao = PhotoDAO(in_memory_db)
-    created = dao.create(object_key="photos/three.jpg", caption=None)
-    updated = dao.update_caption(created.id, "Updated caption")
+    created = dao.create(object_key="photos/three.jpg", description=None)
+    updated = dao.update_description(created.id, "Updated description")
     assert updated is not None
-    assert updated.caption == "Updated caption"
+    assert updated.description == "Updated description"
 
 def test_delete_photo(in_memory_db: Session) -> None:
     dao = PhotoDAO(in_memory_db)
@@ -53,9 +53,9 @@ def test_delete_photo(in_memory_db: Session) -> None:
 
 
 
-def test_update_caption_not_found(in_memory_db: Session) -> None:
+def test_update_description_not_found(in_memory_db: Session) -> None:
     dao = PhotoDAO(in_memory_db)
-    result = dao.update_caption(9999, "nope")
+    result = dao.update_description(9999, "nope")
     assert result is None
 
 def test_delete_not_found(in_memory_db: Session) -> None:

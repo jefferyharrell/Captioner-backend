@@ -25,16 +25,16 @@ def test_photo_table_schema(in_memory_db: Session) -> None:
     # Ensure the table exists and columns are as expected
     inspector = inspect(in_memory_db.get_bind())
     column_names = {col["name"] for col in inspector.get_columns("photos")}
-    assert {"id", "object_key", "caption"}.issubset(column_names)
+    assert {"id", "object_key", "description"}.issubset(column_names)
 
 def test_insert_and_query_photo(in_memory_db: Session) -> None:
-    photo = Photo(object_key="photos/foo.jpg", caption="A caption")
+    photo = Photo(object_key="photos/foo.jpg", description="A description")
     in_memory_db.add(photo)
     in_memory_db.commit()
     found = in_memory_db.query(Photo).filter_by(object_key="photos/foo.jpg").first()
     assert found is not None
     assert found.object_key == "photos/foo.jpg"
-    assert found.caption == "A caption"
+    assert found.description == "A description"
 
 def test_unique_object_key_constraint(in_memory_db: Session) -> None:
     photo1 = Photo(object_key="photos/bar.jpg")
@@ -45,10 +45,10 @@ def test_unique_object_key_constraint(in_memory_db: Session) -> None:
     with pytest.raises(IntegrityError):
         in_memory_db.commit()
 
-def test_nullable_caption(in_memory_db: Session) -> None:
-    photo = Photo(object_key="photos/baz.jpg", caption=None)
+def test_nullable_description(in_memory_db: Session) -> None:
+    photo = Photo(object_key="photos/baz.jpg", description=None)
     in_memory_db.add(photo)
     in_memory_db.commit()
     found = in_memory_db.query(Photo).filter_by(object_key="photos/baz.jpg").first()
     assert found is not None
-    assert found.caption is None
+    assert found.description is None

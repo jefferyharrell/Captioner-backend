@@ -13,8 +13,8 @@ class PhotoListResponse(BaseModel):
 class PhotoResponse(BaseModel):
     id: int
     object_key: str
-    caption: str | None
+    description: str | None
 
 
-class CaptionUpdateRequest(BaseModel):
-    caption: str
+class DescriptionUpdateRequest(BaseModel):
+    description: str

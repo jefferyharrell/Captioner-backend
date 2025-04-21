@@ -32,8 +32,8 @@ def test_get_photos_returns_photo_ids() -> None:
     app.dependency_overrides[get_db] = lambda: session
     # Seed two photos
     dao = PhotoDAO(session)
-    photo1 = dao.create(object_key="foo.jpg", caption=None)
-    photo2 = dao.create(object_key="bar.png", caption=None)
+    photo1 = dao.create(object_key="foo.jpg", description=None)
+    photo2 = dao.create(object_key="bar.png", description=None)
     client = TestClient(app)
     response = client.get("/photos?limit=2&offset=0")
     assert response.status_code == HTTP_200_OK
@@ -73,7 +73,7 @@ def test_get_photos_pagination() -> None:
     # Seed 10 photos
     dao = PhotoDAO(session)
     for i in range(10):
-        dao.create(object_key=f"img_{i}.jpg", caption=None)
+        dao.create(object_key=f"img_{i}.jpg", description=None)
     client = TestClient(app)
     response = client.get("/photos?limit=5&offset=5")
     assert response.status_code == HTTP_200_OK
@@ -111,8 +111,8 @@ def test_get_photo_by_id_success() -> None:
     app.dependency_overrides[get_db] = lambda: session
     # Seed two photos
     dao = PhotoDAO(session)
-    photo1 = dao.create(object_key="foo.jpg", caption=None)
-    photo2 = dao.create(object_key="bar.jpg", caption="Bar")
+    photo1 = dao.create(object_key="foo.jpg", description=None)
+    photo2 = dao.create(object_key="bar.jpg", description="Bar")
     client = TestClient(app)
     # Happy path for first photo
     response = client.get(f"/photos/{photo1.id}")
@@ -120,15 +120,15 @@ def test_get_photo_by_id_success() -> None:
     data = response.json()
     assert data["id"] == photo1.id
     assert data["object_key"] == "foo.jpg"
-    assert "caption" in data
-    assert data["caption"] is None
+    assert "description" in data
+    assert data["description"] is None
     # Happy path for second photo (ensure line 68 is covered)
     response = client.get(f"/photos/{photo2.id}")
     assert response.status_code == HTTP_200_OK
     data = response.json()
     assert data["id"] == photo2.id
     assert data["object_key"] == "bar.jpg"
-    assert data["caption"] == "Bar"
+    assert data["description"] == "Bar"
 
 def test_get_photo_by_id_not_found() -> None:
     engine = create_engine(
@@ -194,7 +194,7 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     )()
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
-    dao.create(object_key="foo.jpg", caption=None)
+    dao.create(object_key="foo.jpg", description=None)
     def raise_generic_error(_self: PhotoDAO, _photo_id: int) -> Never:
         msg = "something went wrong!"
         raise GenericError(msg)
@@ -205,10 +205,10 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     data = response.json()
     assert "something went wrong!" in data["detail"]
 
-def test_patch_photo_caption_success() -> None:
+def test_patch_photo_description_success() -> None:
     # Use a shared in-memory SQLite DB
     db_url = (
-        "sqlite:///file:memdb_patch_caption?mode=memory&cache=shared&uri=true"
+        "sqlite:///file:memdb_patch_description?mode=memory&cache=shared&uri=true"
     )
     engine = create_engine(
         db_url, connect_args={"check_same_thread": False}
@@ -219,32 +219,32 @@ def test_patch_photo_caption_success() -> None:
     app.dependency_overrides[get_db] = lambda: session
 
     dao = PhotoDAO(session)
-    photo = dao.create(object_key="foo.jpg", caption=None)
+    photo = dao.create(object_key="foo.jpg", description=None)
 
     client = TestClient(app)
     response = client.patch(
-        f"/photos/{photo.id}/caption",
-        json={"caption": "A new caption!"},
+        f"/photos/{photo.id}/description",
+        json={"description": "A new description!"},
     )
     assert response.status_code == HTTP_200_OK
 
     data = response.json()
     assert data["id"] == photo.id
-    assert data["caption"] == "A new caption!"
+    assert data["description"] == "A new description!"
 
     # Confirm in DB
     updated = dao.get(photo.id)
     assert updated is not None
-    assert updated.caption == "A new caption!"
+    assert updated.description == "A new description!"
 
     # Clean up
     app.dependency_overrides.clear()
     session.close()
     engine.dispose()
 
-def test_patch_photo_caption_not_found() -> None:
+def test_patch_photo_description_not_found() -> None:
     engine = create_engine(
-        "sqlite:///file:memdb_patch_photo_caption_not_found?mode=memory&cache=shared&uri=true",
+        "sqlite:///file:memdb_patch_photo_description_not_found?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
@@ -255,12 +255,15 @@ def test_patch_photo_caption_not_found() -> None:
     )()
     app.dependency_overrides[get_db] = lambda: session
     client = TestClient(app)
-    response = client.patch("/photos/123/caption", json={"caption": "Doesn't exist"})
+    response = client.patch(
+        "/photos/123/description",
+        json={"description": "Doesn't exist"},
+    )
     assert response.status_code == HTTP_404_NOT_FOUND
     data = response.json()
     assert data["detail"] == "Photo not found"
 
-def test_patch_photo_caption_db_error() -> None:
+def test_patch_photo_description_db_error() -> None:
     class BoomError(Exception):
         pass
     def bad_session() -> NoReturn:
@@ -268,7 +271,7 @@ def test_patch_photo_caption_db_error() -> None:
         raise BoomError(msg)
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
-    response = client.patch("/photos/1/caption", json={"caption": "irrelevant"})
+    response = client.patch("/photos/1/description", json={"description": "irrelevant"})
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "detail" in data
@@ -288,7 +291,7 @@ def test_get_photos_shuffled_returns_all_when_limit_exceeds_count() -> None:
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
     ids = [
-        dao.create(object_key=f"img_{i}.jpg", caption=None).id
+        dao.create(object_key=f"img_{i}.jpg", description=None).id
         for i in range(SHUFFLE_TOTAL)
     ]
     client = TestClient(app)
@@ -308,7 +311,10 @@ def test_get_photos_shuffled_respects_limit() -> None:
     session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
-    [dao.create(object_key=f"img_{i}.jpg", caption=None) for i in range(10)]
+    [
+        dao.create(object_key=f"img_{i}.jpg", description=None)
+        for i in range(10)
+    ]
     client = TestClient(app)
     response = client.get(f"/photos/shuffled?limit={SHUFFLE_LIMIT}")
     assert response.status_code == HTTP_200_OK
@@ -327,7 +333,10 @@ def test_get_photos_shuffled_is_randomized() -> None:
     session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
-    [dao.create(object_key=f"img_{i}.jpg", caption=None) for i in range(SHUFFLE_TOTAL)]
+    photo_ids: list[int] = []
+    for i in range(SHUFFLE_TOTAL):
+        photo = dao.create(object_key=f"img_{i}.jpg", description=None)
+        photo_ids.append(photo.id)
     client = TestClient(app)
     orderings: set[tuple[int, ...]] = set()
     for _ in range(5):
