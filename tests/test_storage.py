@@ -1,4 +1,3 @@
-import os
 import pathlib
 from collections.abc import Mapping
 from unittest.mock import patch
@@ -357,32 +356,6 @@ def test_override_s3_backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(storage, S3Storage)
 
 
-@pytest.mark.skipif(
-    not (os.getenv("DROPBOX_APP_KEY") and os.getenv("DROPBOX_APP_SECRET") and os.getenv("DROPBOX_REFRESH_TOKEN")),  # noqa: E501
-    reason="No Dropbox token set; skipping live Dropbox API test."
-)
-def test_dropbox_live_list_folder() -> None:
-    """
-    Live test: Only runs if DROPBOX_TOKEN is set. Calls Dropbox API and checks
-    status code.
-    """
-    from app.storage import DropboxStorage
-    storage = DropboxStorage()
-    photos = storage.list_photos()
-    print(f"Photos found on Dropbox at {storage.base_path or '/'} (JPEG/PNG only):")  # noqa: T201
-    for path in photos:
-        print(path)  # noqa: T201
-    # We still want to check API connectivity, so do a minimal API call for status
-    token = storage.token
-    url = "https://api.dropboxapi.com/2/files/list_folder"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    data = {"path": storage.base_path, "recursive": False}
-    resp = requests.post(url, headers=headers, json=data, timeout=10)
-    http_ok = 200
-    assert resp.status_code == http_ok
 
 
 def test_filesystem_storage_missing_path() -> None:

@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
 
 import requests
 
@@ -128,13 +129,13 @@ class DropboxStorage(PhotoStorage):
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
         }
-        data = {
+        data: Any = {
             "path": f"/{object_key}",
             "property_templates": [self._TEMPLATE_NAME],
         }
         try:
             resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
-        except requests.RequestException as exc:
+        except Exception as exc:
             error_message = f"Dropbox API request failed: {exc}"
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
@@ -168,7 +169,7 @@ class DropboxStorage(PhotoStorage):
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
         }
-        data = {
+        data: Any = {
             "path": f"/{object_key}",
             "property_groups": [
                 {
@@ -181,7 +182,7 @@ class DropboxStorage(PhotoStorage):
         }
         try:
             resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
-        except requests.RequestException as exc:
+        except Exception as exc:
             error_message = f"Dropbox API request failed: {exc}"
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
@@ -202,14 +203,14 @@ class DropboxStorage(PhotoStorage):
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
         }
-        data = {
+        data: Any = {
             "path": f"/{object_key}",
             "property_template_id": self._TEMPLATE_NAME,
             "property_field_names": [self._FIELD_NAME],
         }
         try:
             resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
-        except requests.RequestException as exc:
+        except Exception as exc:
             error_message = f"Dropbox API request failed: {exc}"
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
@@ -252,7 +253,7 @@ class DropboxStorage(PhotoStorage):
                 },
                 timeout=self._TIMEOUT,
             )
-        except requests.RequestException as exc:
+        except Exception as exc:
             error_message = f"Failed to obtain Dropbox access token: {exc}"
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
@@ -292,7 +293,7 @@ class DropboxStorage(PhotoStorage):
             resp = requests.post(
                 url, headers=headers, json=data, timeout=self._TIMEOUT
             )
-        except requests.RequestException as exc:
+        except Exception as exc:
             error_message = f"Dropbox API request failed: {exc}"
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
@@ -320,7 +321,7 @@ class DropboxStorage(PhotoStorage):
                 resp = requests.post(
                     url, headers=headers, json=data, timeout=self._TIMEOUT
                 )
-            except requests.RequestException as exc:
+            except Exception as exc:
                 error_message = f"Dropbox API request failed: {exc}"
                 raise DropboxStorageError(error_message) from exc
             if resp.status_code != self._SUCCESS_CODE:
@@ -356,7 +357,7 @@ class DropboxStorage(PhotoStorage):
         }
         try:
             resp = requests.post(url, headers=headers, timeout=self._TIMEOUT)
-        except requests.RequestException as exc:
+        except Exception as exc:
             error_message = f"Dropbox API request failed: {exc}"
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
