@@ -1,6 +1,7 @@
 """
 JWT utility functions for encoding and decoding tokens.
 """
+
 import os
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
@@ -28,7 +29,10 @@ def create_access_token(
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode["exp"] = int(expire.timestamp())
-    token = cast("str | bytes", jwt.encode({"alg": ALGORITHM}, to_encode, get_secret_key()))  # type: ignore[reportUnknownMemberType]  # noqa: E501
+    token = cast(
+        "str | bytes",
+        jwt.encode({"alg": ALGORITHM}, to_encode, get_secret_key()),  # type: ignore[reportUnknownMemberType]
+    )
     if isinstance(token, bytes):
         return token.decode("utf-8")
     return str(token)

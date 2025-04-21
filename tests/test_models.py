@@ -21,11 +21,13 @@ def in_memory_db() -> Generator[Session, None, None]:
         yield session
     # No explicit teardown needed; in-memory DB is discarded
 
+
 def test_photo_table_schema(in_memory_db: Session) -> None:
     # Ensure the table exists and columns are as expected
     inspector = inspect(in_memory_db.get_bind())
     column_names = {col["name"] for col in inspector.get_columns("photos")}
     assert {"id", "object_key", "caption"}.issubset(column_names)
+
 
 def test_insert_and_query_photo(in_memory_db: Session) -> None:
     photo = Photo(object_key="photos/foo.jpg", caption="A caption")
@@ -36,6 +38,7 @@ def test_insert_and_query_photo(in_memory_db: Session) -> None:
     assert found.object_key == "photos/foo.jpg"
     assert found.caption == "A caption"
 
+
 def test_unique_object_key_constraint(in_memory_db: Session) -> None:
     photo1 = Photo(object_key="photos/bar.jpg")
     photo2 = Photo(object_key="photos/bar.jpg")
@@ -44,6 +47,7 @@ def test_unique_object_key_constraint(in_memory_db: Session) -> None:
     in_memory_db.add(photo2)
     with pytest.raises(IntegrityError):
         in_memory_db.commit()
+
 
 def test_nullable_caption(in_memory_db: Session) -> None:
     photo = Photo(object_key="photos/baz.jpg", caption=None)

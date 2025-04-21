@@ -19,6 +19,7 @@ Scopes required (enable in Dropbox App Console):
 Usage:
     python get_dropbox_refresh_token.py
 """
+
 import os
 import sys
 import webbrowser
@@ -47,15 +48,14 @@ if not (APP_KEY and APP_SECRET and REDIRECT_URI):
     )
     sys.exit(1)
 
-auth_url = (
-    "https://www.dropbox.com/oauth2/authorize?"
-    + urlencode({
+auth_url = "https://www.dropbox.com/oauth2/authorize?" + urlencode(
+    {
         "client_id": APP_KEY,
         "redirect_uri": REDIRECT_URI,
         "response_type": "code",
         "token_access_type": "offline",
         "scope": " ".join(SCOPES),
-    })
+    }
 )
 
 print("\n1. Open the following URL in your browser and authorize the app:")  # noqa: T201

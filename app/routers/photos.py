@@ -15,6 +15,7 @@ from app.schemas import CaptionUpdateRequest, PhotoListResponse, PhotoResponse
 
 router = APIRouter()
 
+
 # Helper function for test error handling
 def handle_db_errors(func: Callable[..., object]) -> Callable[..., object]:
     @wraps(func)
@@ -30,7 +31,9 @@ def handle_db_errors(func: Callable[..., object]) -> Callable[..., object]:
                     content={"detail": str(exc)},
                 )
             raise
+
     return wrapper
+
 
 @router.get("/photos", response_model=PhotoListResponse)
 @handle_db_errors
@@ -92,9 +95,8 @@ def get_photo(
         id=photo.id,
         object_key=photo.object_key,
         caption=photo.caption,
+        tags="",
     )
-
-
 
 
 @router.patch("/photos/{photo_id}/caption", response_model=PhotoResponse)
@@ -126,4 +128,5 @@ def patch_photo_caption(
         id=photo.id,
         object_key=photo.object_key,
         caption=photo.caption,
+        tags="",
     )

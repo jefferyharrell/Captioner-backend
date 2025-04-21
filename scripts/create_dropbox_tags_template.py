@@ -13,6 +13,7 @@ Environment variables required:
     DROPBOX_REFRESH_TOKEN
     (or a valid access token for manual testing)
 """
+
 import json
 import os
 import sys
@@ -24,7 +25,9 @@ from dotenv import load_dotenv  # type: ignore[import]  # Added for .env support
 load_dotenv()
 
 DROPBOX_API_URL = "https://api.dropboxapi.com/2/file_properties/templates/add_for_user"
-DROPBOX_LIST_TEMPLATES_URL = "https://api.dropboxapi.com/2/file_properties/templates/list_for_user"
+DROPBOX_LIST_TEMPLATES_URL = (
+    "https://api.dropboxapi.com/2/file_properties/templates/list_for_user"
+)
 DROPBOX_TOKEN_URL = "https://api.dropbox.com/oauth2/token"  # noqa: S105
 
 TEMPLATE_NAME = "PhotoTags"
@@ -65,9 +68,9 @@ def template_exists(token: str, template_name: str) -> str | None:
     resp = requests.post(
         DROPBOX_LIST_TEMPLATES_URL,
         headers={
-    "Authorization": f"Bearer {token}",
-    "Content-Type": "application/json",
-},
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
         data="null",
         timeout=REQUEST_TIMEOUT,
     )
@@ -107,9 +110,9 @@ def create_template(token: str) -> str | None:
     resp = requests.post(
         DROPBOX_API_URL,
         headers={
-    "Authorization": f"Bearer {token}",
-    "Content-Type": "application/json",
-},
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
         data=json.dumps(payload),
         timeout=REQUEST_TIMEOUT,
     )

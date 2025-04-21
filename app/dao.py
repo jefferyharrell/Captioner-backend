@@ -15,13 +15,7 @@ class PhotoDAO:
         return self.db.get(Photo, photo_id)
 
     def list(self, limit: int = 100, offset: int = 0) -> Sequence[Photo]:
-        return (
-            self.db.query(Photo)
-            .order_by(Photo.id)
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(Photo).order_by(Photo.id).offset(offset).limit(limit).all()
 
     def create(self, object_key: str, caption: str | None = None) -> Photo:
         photo = Photo(object_key=object_key, caption=caption)
