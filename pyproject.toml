@@ -21,3 +21,5 @@ stubPath = "typings"
 include = ["app", "tests"]
 exclude = ["node_modules", ".venv"]
 extraPaths = ["typings"]
+venvPath = "."
+venv = ".venv"
