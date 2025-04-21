@@ -12,12 +12,14 @@ repos:
     hooks:
       - id: ruff
         args: ["--target-version=py312"]
+        python_interpreter: .venv/bin/python
 
   - repo: local
     hooks:
       - id: pyright-local
         name: pyright (local)
-        entry: npx pyright
+        entry: . .venv/bin/activate && npx pyright
         language: system
         types: [python]
         files: ".*\\.py$"
+        pass_filenames: false
