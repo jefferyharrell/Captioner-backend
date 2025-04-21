@@ -1,19 +1,11 @@
-import os
-import pathlib
 from collections.abc import Mapping
 from unittest.mock import patch
 
 import pytest
 import requests
 
-from app.storage import (
-    DropboxStorage,
-    DropboxStorageError,
-    FileSystemStorage,
-    PhotoStorage,
-    S3Storage,
-    get_storage_backend,
-)
+from app.storage import PhotoStorage, get_storage_backend
+from app.storage_dropbox import DropboxStorage, DropboxStorageError
 
 OAUTH_TOKEN_URL = "https://api.dropbox.com/oauth2/token"  # noqa: S105
 
@@ -24,31 +16,14 @@ def dropbox_oauth_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DROPBOX_REFRESH_TOKEN", "dummy-refresh-token")
 
 def test_storage_interface() -> None:
-    # All storage backends must implement the PhotoStorage interface
-    storage: PhotoStorage = FileSystemStorage(base_path="/does/not/matter")
+    # DropboxStorage must implement the PhotoStorage interface
+    storage: PhotoStorage = DropboxStorage()
     assert hasattr(storage, "list_photos")
     assert hasattr(storage, "get_photo")
     assert callable(storage.list_photos)
     assert callable(storage.get_photo)
 
 
-def test_filesystem_storage(tmp_path: pathlib.Path) -> None:
-    # Create sample photo files
-    file1 = tmp_path / "photo1.jpg"
-    content1 = b"first"
-    file1.write_bytes(content1)
-    file2 = tmp_path / "photo2.png"
-    content2 = b"second"
-    file2.write_bytes(content2)
-
-    storage = FileSystemStorage(base_path=str(tmp_path))
-    photos = storage.list_photos()
-    # Expect filenames returned
-    assert set(photos) == {"photo1.jpg", "photo2.png"}
-
-    # get_photo returns raw bytes
-    data = storage.get_photo("photo1.jpg")
-    assert data == content1
 
 
 def test_default_storage_is_dropbox(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -56,19 +31,6 @@ def test_default_storage_is_dropbox(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("STORAGE_BACKEND", raising=False)
     storage = get_storage_backend()
     assert isinstance(storage, DropboxStorage)
-
-
-def test_override_backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    # We can override default via STORAGE_BACKEND env var
-    monkeypatch.setenv("STORAGE_BACKEND", "filesystem")
-    storage = get_storage_backend()
-    assert isinstance(storage, FileSystemStorage)
-
-
-def test_unknown_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("STORAGE_BACKEND", "unknown")
-    with pytest.raises(ValueError, match="Unknown storage backend"):
-        get_storage_backend()
 
 
 def test_dropbox_storage_list_photos() -> None:
@@ -332,55 +294,12 @@ def test_dropbox_storage_get_photo_request_exception() -> None:
             storage.get_photo("anything.jpg")
 
 
-def test_s3_storage_not_implemented() -> None:
-    # S3Storage methods are unimplemented
-    storage = S3Storage()
-    with pytest.raises(NotImplementedError, match="list_photos not implemented"):
-        storage.list_photos()
-    with pytest.raises(NotImplementedError, match="get_photo not implemented"):
-        storage.get_photo("x")
 
 
-def test_override_s3_backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Override default via STORAGE_BACKEND to s3
-    monkeypatch.setenv("STORAGE_BACKEND", "s3")
-    storage = get_storage_backend()
-    assert isinstance(storage, S3Storage)
 
 
-@pytest.mark.skipif(
-    not (os.getenv("DROPBOX_APP_KEY") and os.getenv("DROPBOX_APP_SECRET") and os.getenv("DROPBOX_REFRESH_TOKEN")),  # noqa: E501
-    reason="No Dropbox token set; skipping live Dropbox API test."
-)
-def test_dropbox_live_list_folder() -> None:
-    """
-    Live test: Only runs if DROPBOX_TOKEN is set. Calls Dropbox API and checks
-    status code.
-    """
-    from app.storage import DropboxStorage
-    storage = DropboxStorage()
-    photos = storage.list_photos()
-    print(f"Photos found on Dropbox at {storage.base_path or '/'} (JPEG/PNG only):")  # noqa: T201
-    for path in photos:
-        print(path)  # noqa: T201
-    # We still want to check API connectivity, so do a minimal API call for status
-    token = storage.token
-    url = "https://api.dropboxapi.com/2/files/list_folder"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    data = {"path": storage.base_path, "recursive": False}
-    resp = requests.post(url, headers=headers, json=data, timeout=10)
-    http_ok = 200
-    assert resp.status_code == http_ok
 
 
-def test_filesystem_storage_missing_path() -> None:
-    # Listing a nonexistent directory returns empty list
-    storage = FileSystemStorage(base_path="/path/does/not/exist")
-    photos = storage.list_photos()
-    assert photos == []
 
 
 def test_blank_override_backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
