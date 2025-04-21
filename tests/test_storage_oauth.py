@@ -3,7 +3,8 @@ import pathlib
 import pytest
 import requests
 
-from app.storage import DropboxStorage, DropboxStorageError
+from app.storage import DropboxStorage
+from app.storage.dropbox_storage import DropboxStorageError
 
 OAUTH_TOKEN_URL = "https://api.dropbox.com/oauth2/token"  # noqa: S105
 DUMMY_ACCESS_TOKEN = "test-access-token-123"  # noqa: S105

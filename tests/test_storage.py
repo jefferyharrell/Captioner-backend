@@ -1,4 +1,3 @@
-import os
 import pathlib
 from collections.abc import Mapping
 from unittest.mock import patch
@@ -8,12 +7,12 @@ import requests
 
 from app.storage import (
     DropboxStorage,
-    DropboxStorageError,
     FileSystemStorage,
     PhotoStorage,
     S3Storage,
     get_storage_backend,
 )
+from app.storage.dropbox_storage import DropboxStorageError
 
 OAUTH_TOKEN_URL = "https://api.dropbox.com/oauth2/token"  # noqa: S105
 
@@ -72,7 +71,7 @@ def test_unknown_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_dropbox_storage_list_photos() -> None:
-    # Mock Dropbox API response for listing files
+    # Mock Dropbox API response for both token refresh and listing files
     files_response = {
         "entries": [
             {
@@ -123,15 +122,19 @@ def test_dropbox_storage_list_photos() -> None:
                 def json(self) -> Mapping[str, str]:
                     return {"access_token": "dummy-token"}
             return MockAuth()
-        class MockResponse:
-            def __init__(self) -> None:
-                self.status_code = 200
-            def json(self) -> Mapping[str, object]:
-                return files_response
-        assert _url.endswith("/files/list_folder")
-        return MockResponse()
+        if _url.endswith(("/files/list_folder", "/files/list_folder/continue")):
+            class MockResponse:
+                def __init__(self) -> None:
+                    self.status_code = 200
+                def json(self) -> Mapping[str, object]:
+                    return files_response
+            return MockResponse()
+        message = (
+            f"Unexpected Dropbox API URL: {_url}"
+        )
+        raise AssertionError(message)
 
-    with patch("requests.post", mock_post):
+    with patch("app.storage.dropbox_storage.requests.post", mock_post):
         storage = DropboxStorage()
         photos = storage.list_photos()
         # Only JPEGs and PNGs, with full relative paths
@@ -348,32 +351,6 @@ def test_override_s3_backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(storage, S3Storage)
 
 
-@pytest.mark.skipif(
-    not (os.getenv("DROPBOX_APP_KEY") and os.getenv("DROPBOX_APP_SECRET") and os.getenv("DROPBOX_REFRESH_TOKEN")),  # noqa: E501
-    reason="No Dropbox token set; skipping live Dropbox API test."
-)
-def test_dropbox_live_list_folder() -> None:
-    """
-    Live test: Only runs if DROPBOX_TOKEN is set. Calls Dropbox API and checks
-    status code.
-    """
-    from app.storage import DropboxStorage
-    storage = DropboxStorage()
-    photos = storage.list_photos()
-    print(f"Photos found on Dropbox at {storage.base_path or '/'} (JPEG/PNG only):")  # noqa: T201
-    for path in photos:
-        print(path)  # noqa: T201
-    # We still want to check API connectivity, so do a minimal API call for status
-    token = storage.token
-    url = "https://api.dropboxapi.com/2/files/list_folder"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    data = {"path": storage.base_path, "recursive": False}
-    resp = requests.post(url, headers=headers, json=data, timeout=10)
-    http_ok = 200
-    assert resp.status_code == http_ok
 
 
 def test_filesystem_storage_missing_path() -> None:

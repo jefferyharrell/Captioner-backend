@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: pyright-local
         name: pyright (local)
-        entry: npx pyright
+        entry: bash -c "source .venv/bin/activate && npx pyright"
         language: system
         types: [python]
         files: ".*\\.py$"
