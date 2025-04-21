@@ -30,8 +30,10 @@ jobs:
           key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pre-commit-
-      - name: Install all Python dependencies (runtime and dev)
+      - name: Set up .venv and install all Python dependencies (runtime and dev)
         run: |
+          python -m venv .venv
+          . .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run pre-commit hooks
