@@ -9,7 +9,6 @@ from app.main import HTTP_200_OK, app
 
 client: TestClient = TestClient(app)
 
-
 @pytest.fixture(autouse=True)
 def set_password_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BACKEND_PASSWORD", "supersecret")

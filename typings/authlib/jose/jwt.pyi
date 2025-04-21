@@ -5,12 +5,12 @@ def encode(
     payload: dict[str, Any],
     key: str,
     check: bool = True,
-) -> str | bytes: ...
+) -> Any: ...  # noqa: ANN401
 
 def decode(
     token: str,
     key: str,
-    claims_cls: Any | None = ...,
-    claims_options: Any | None = ...,
-    claims_params: Any | None = ...,
-) -> Any: ...
+    claims_cls: Any | None = ...,  # noqa: ANN401
+    claims_options: Any | None = ...,  # noqa: ANN401
+    claims_params: Any | None = ...,  # noqa: ANN401
+) -> Any: ...  # noqa: ANN401

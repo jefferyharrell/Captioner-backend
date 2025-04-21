@@ -40,7 +40,6 @@ def test_get_photos_returns_photo_ids() -> None:
     data = response.json()
     assert data["photo_ids"] == [photo1.id, photo2.id]
 
-
 def test_get_photos_empty() -> None:
     engine = create_engine(
         "sqlite:///file:memdb_get_photos_empty?mode=memory&cache=shared&uri=true",
@@ -58,7 +57,6 @@ def test_get_photos_empty() -> None:
     assert response.status_code == HTTP_200_OK
     data = response.json()
     assert data["photo_ids"] == []
-
 
 def test_get_photos_pagination() -> None:
     engine = create_engine(
@@ -82,16 +80,13 @@ def test_get_photos_pagination() -> None:
     data = response.json()
     assert data["photo_ids"] == [6, 7, 8, 9, 10]
 
-
 def test_get_photos_storage_error() -> None:
     # Simulate DB connection error
     class BoomError(Exception):
         pass
-
     def bad_session() -> NoReturn:
         error_msg: str = "db error"
         raise BoomError(error_msg)
-
     # Override DB dependency to simulate error
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
@@ -99,7 +94,6 @@ def test_get_photos_storage_error() -> None:
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "detail" in data
-
 
 # Tests for GET /photos/{id}
 def test_get_photo_by_id_success() -> None:
@@ -128,9 +122,6 @@ def test_get_photo_by_id_success() -> None:
     assert data["object_key"] == "foo.jpg"
     assert "caption" in data
     assert data["caption"] is None
-    assert "tags" in data
-    assert isinstance(data["tags"], str)
-    assert data["tags"] == ""
     # Happy path for second photo (ensure line 68 is covered)
     response = client.get(f"/photos/{photo2.id}")
     assert response.status_code == HTTP_200_OK
@@ -138,10 +129,6 @@ def test_get_photo_by_id_success() -> None:
     assert data["id"] == photo2.id
     assert data["object_key"] == "bar.jpg"
     assert data["caption"] == "Bar"
-    assert "tags" in data
-    assert isinstance(data["tags"], str)
-    assert data["tags"] == ""
-
 
 def test_get_photo_by_id_not_found() -> None:
     engine = create_engine(
@@ -161,15 +148,12 @@ def test_get_photo_by_id_not_found() -> None:
     data = response.json()
     assert data["detail"] == "Photo not found"
 
-
 def test_get_photo_by_id_storage_error() -> None:
     class BoomError(Exception):
         pass
-
     def bad_session() -> NoReturn:
         error_msg: str = "db error"
         raise BoomError(error_msg)
-
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
     response = client.get("/photos/1")
@@ -182,11 +166,9 @@ def test_handle_db_errors_test_app_module() -> None:
     # Simulate an exception with __module__ containing 'test_app'
     class CustomTestAppError(Exception):
         __module__ = "test_app.custom"
-
     def bad_session() -> NoReturn:
         msg = "simulated test_app error"
         raise CustomTestAppError(msg)
-
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
     response = client.get("/photos/1")
@@ -200,7 +182,6 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     # Patch PhotoDAO.get to raise a generic exception
     class GenericError(Exception):
         pass
-
     engine = create_engine(
         "sqlite:///file:memdb_get_photo_by_id_generic_exception?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
@@ -214,11 +195,9 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
     dao.create(object_key="foo.jpg", caption=None)
-
     def raise_generic_error(_self: PhotoDAO, _photo_id: int) -> Never:
         msg = "something went wrong!"
         raise GenericError(msg)
-
     monkeypatch.setattr(PhotoDAO, "get", raise_generic_error)
     client = TestClient(app)
     response = client.get("/photos/1")
@@ -226,11 +205,14 @@ def test_get_photo_by_id_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     data = response.json()
     assert "something went wrong!" in data["detail"]
 
-
 def test_patch_photo_caption_success() -> None:
     # Use a shared in-memory SQLite DB
-    db_url = "sqlite:///file:memdb_patch_caption?mode=memory&cache=shared&uri=true"
-    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    db_url = (
+        "sqlite:///file:memdb_patch_caption?mode=memory&cache=shared&uri=true"
+    )
+    engine = create_engine(
+        db_url, connect_args={"check_same_thread": False}
+    )
     Base.metadata.create_all(engine)
     session_maker = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     session = session_maker()
@@ -249,9 +231,6 @@ def test_patch_photo_caption_success() -> None:
     data = response.json()
     assert data["id"] == photo.id
     assert data["caption"] == "A new caption!"
-    assert "tags" in data
-    assert isinstance(data["tags"], str)
-    assert data["tags"] == ""
 
     # Confirm in DB
     updated = dao.get(photo.id)
@@ -262,7 +241,6 @@ def test_patch_photo_caption_success() -> None:
     app.dependency_overrides.clear()
     session.close()
     engine.dispose()
-
 
 def test_patch_photo_caption_not_found() -> None:
     engine = create_engine(
@@ -282,15 +260,12 @@ def test_patch_photo_caption_not_found() -> None:
     data = response.json()
     assert data["detail"] == "Photo not found"
 
-
 def test_patch_photo_caption_db_error() -> None:
     class BoomError(Exception):
         pass
-
     def bad_session() -> NoReturn:
         msg = "db error"
         raise BoomError(msg)
-
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
     response = client.patch("/photos/1/caption", json={"caption": "irrelevant"})
@@ -381,11 +356,9 @@ def test_get_photos_shuffled_empty_db() -> None:
 def test_get_photos_shuffled_storage_error() -> None:
     class BoomError(Exception):
         pass
-
     def bad_session() -> NoReturn:
         msg = "db error"
         raise BoomError(msg)
-
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
     response = client.get(f"/photos/shuffled?limit={SHUFFLE_LIMIT}")

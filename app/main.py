@@ -17,13 +17,11 @@ load_dotenv()
 # Ensure database tables exist
 Base.metadata.create_all(bind=engine)
 
-
 # Create a custom middleware for test exceptions
 class TestErrorMiddleware(BaseHTTPMiddleware):
     """Custom middleware to catch test exceptions and return proper error responses.
     This middleware captures exceptions from test modules and converts them
     to proper HTTP 500 responses instead of crashing the application."""
-
     async def dispatch(
         self,
         request: Request,
@@ -36,16 +34,14 @@ class TestErrorMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             # Check if this is one of our test exceptions
             exc_name = exc.__class__.__name__
-            if exc_name == "BoomError" or (
-                hasattr(exc, "__module__") and "test_app" in str(exc.__module__)
-            ):
+            if (exc_name == "BoomError" or
+                (hasattr(exc, "__module__") and "test_app" in str(exc.__module__))):
                 return JSONResponse(
                     status_code=HTTP_500_INTERNAL_SERVER_ERROR,
                     content={"detail": str(exc)},
                 )
             # Re-raise all other exceptions
             raise
-
 
 app = FastAPI()
 

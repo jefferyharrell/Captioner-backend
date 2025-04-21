@@ -56,9 +56,7 @@ class DropboxStorage(PhotoStorage):
     """
 
     _DROPBOX_LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
-    _DROPBOX_LIST_FOLDER_CONTINUE_URL = (
-        "https://api.dropboxapi.com/2/files/list_folder/continue"
-    )
+    _DROPBOX_LIST_FOLDER_CONTINUE_URL = "https://api.dropboxapi.com/2/files/list_folder/continue"
     _DROPBOX_DOWNLOAD_URL = "https://content.dropboxapi.com/2/files/download"
     _SUCCESS_CODE = 200
     _NOT_FOUND_CODE = 409
@@ -102,7 +100,8 @@ class DropboxStorage(PhotoStorage):
             raise DropboxStorageError(error_message) from exc
         if resp.status_code != self._SUCCESS_CODE:
             error_message = (
-                f"Failed to obtain Dropbox access token: {resp.status_code} {resp.text}"
+                f"Failed to obtain Dropbox access token: {resp.status_code} "
+                f"{resp.text}"
             )
             raise DropboxStorageError(error_message)
         token_json = resp.json()
@@ -133,7 +132,9 @@ class DropboxStorage(PhotoStorage):
         }
         data = {"path": self.base_path, "recursive": True}
         try:
-            resp = requests.post(url, headers=headers, json=data, timeout=self._TIMEOUT)
+            resp = requests.post(
+                url, headers=headers, json=data, timeout=self._TIMEOUT
+            )
         except requests.RequestException as exc:
             error_message = f"Dropbox API request failed: {exc}"
             raise DropboxStorageError(error_message) from exc

@@ -15,6 +15,5 @@ def test_get_db_yields_session() -> None:
     assert isinstance(session, Session)
     # Close the session (simulating the end of the with block in FastAPI)
     import contextlib
-
     with contextlib.suppress(StopIteration):
         next(db_gen)

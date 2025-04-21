@@ -10,7 +10,6 @@ from app.schemas import RescanResponse
 
 router = APIRouter()
 
-
 @router.post("/rescan", response_model=RescanResponse)
 def rescan(
     db: Annotated[Session, Depends(get_db)],
@@ -20,7 +19,6 @@ def rescan(
     """
     # Late import to allow test override of get_storage_backend
     from app.main import get_storage_backend
-
     try:
         backend = get_storage_backend()
         photos = backend.list_photos()
@@ -29,7 +27,6 @@ def rescan(
 
     # Ensure DB tables exist for in-memory SQLite used in tests
     from app.database import Base
-
     try:
         engine = db.get_bind()
         Base.metadata.create_all(bind=engine)
