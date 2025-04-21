@@ -410,7 +410,7 @@ def test_get_photos_decorator_test_app_error(
         __module__ = "test_app_module"
 
     error_message = "DAO Test error from test_app module"
-    def mock_list(_self: object, _limit: int = 100, _offset: int = 0) -> Never:
+    def mock_list(_self: object, *, _limit: int = 100, _offset: int = 0) -> Never:
         raise CustomTestAppError(error_message)
 
     monkeypatch.setattr(PhotoDAO, "list", mock_list)
@@ -471,7 +471,7 @@ def test_get_photos_shuffled_success(
     mock_photos = [MockPhoto(photo_id) for photo_id in mock_ids]
 
     def mock_list(
-        _self: object, _limit: int = 100, _offset: int = 0
+        _self: object, *, _limit: int = 100, _offset: int = 0
     ) -> list[MockPhoto]:
         return mock_photos
 
@@ -498,7 +498,7 @@ def test_get_photos_shuffled_db_error(
     # Provide BaseException instance
     orig_exception = BaseException("original shuffle error context")
 
-    def mock_list_error(_self: object, _limit: int = 100, _offset: int = 0) -> Never:
+    def mock_list_error(_self: object, *, _limit: int = 100, _offset: int = 0) -> Never:
         raise OperationalError(error_message, None, orig_exception)
 
     monkeypatch.setattr(PhotoDAO, "list", mock_list_error)
