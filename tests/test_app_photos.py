@@ -211,7 +211,7 @@ def test_patch_photo_description_success() -> None:
 
     client = TestClient(app)
     response = client.patch(
-        f"/photos/{photo.id}/caption",
+        f"/photos/{photo.id}/description",
         json={"description": "A new description!"},
     )
     assert response.status_code == HTTP_200_OK
@@ -244,7 +244,7 @@ def test_patch_photo_description_not_found() -> None:
     )()
     app.dependency_overrides[get_db] = lambda: session
     client = TestClient(app)
-    response = client.patch("/photos/123/caption",
+    response = client.patch("/photos/123/description",
                             json={"description": "Doesn't exist"})
     assert response.status_code == HTTP_404_NOT_FOUND
     data = response.json()
@@ -258,7 +258,7 @@ def test_patch_photo_description_db_error() -> None:
         raise BoomError(msg)
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
-    response = client.patch("/photos/1/caption",
+    response = client.patch("/photos/1/description",
                             json={"description": "irrelevant"})
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
@@ -281,7 +281,7 @@ def test_patch_photo_description_operational_error(
 
     monkeypatch.setattr(PhotoDAO, "update_description", mock_update_description)
 
-    response = client.patch("/photos/1/caption",
+    response = client.patch("/photos/1/description",
                             json={"description": "new description"})
     # The implementation returns 404 when OperationalError occurs
     assert response.status_code == HTTP_404_NOT_FOUND
@@ -305,7 +305,7 @@ def test_patch_photo_description_generic_error(
     monkeypatch.setattr(PhotoDAO, "update_description", mock_update_description)
 
     update_payload = {"description": "Trigger Generic Error"}
-    response = client.patch("/photos/1/caption", json=update_payload)
+    response = client.patch("/photos/1/description", json=update_payload)
 
     # The route's own except Exception block should catch this
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -436,12 +436,12 @@ def test_patch_photo_description_invalid_payload(client: TestClient) -> None:
     """Test updating with invalid payload returns 422."""
     # Payload missing the required 'description' field
     invalid_payload = {"wrong_field": "Some value"}
-    response = client.patch("/photos/1/caption", json=invalid_payload)
+    response = client.patch("/photos/1/description", json=invalid_payload)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # Payload with incorrect type for 'description'
     invalid_payload_type = {"description": 12345}
-    response = client.patch("/photos/1/caption", json=invalid_payload_type)
+    response = client.patch("/photos/1/description", json=invalid_payload_type)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 

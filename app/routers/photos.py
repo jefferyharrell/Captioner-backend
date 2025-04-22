@@ -95,7 +95,7 @@ def get_photo(
     )
 
 
-@router.patch("/photos/{photo_id}/caption", response_model=PhotoResponse)
+@router.patch("/photos/{photo_id}/description", response_model=PhotoResponse)
 @handle_db_errors
 def patch_photo_caption(
     photo_id: int,
