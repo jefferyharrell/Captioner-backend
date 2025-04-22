@@ -20,6 +20,8 @@ per-file-ignores = {"tests/*.py" = ["S101"]}
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
+asyncio_mode = "auto" # Fix deprecation warning
+asyncio_default_fixture_loop_scope = "function" # Explicitly set scope for warning
 testpaths = [
     "tests",
 ]
@@ -32,10 +34,8 @@ pythonVersion = "3.12"
 typeCheckingMode = "strict"
 reportMissingImports = true
 reportMissingTypeStubs = false
-stubPath = "typings"
 include = ["app", "tests"]
 exclude = ["node_modules", ".venv"]
-extraPaths = ["typings"]
 venvPath = "."
 venv = ".venv"
 

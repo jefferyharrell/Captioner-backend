@@ -1,12 +1,15 @@
 -r requirements.txt
 
+# Testing
+pytest==8.3.5
+pytest-cov==6.1.1
+pytest-asyncio>=0.23.6
+requests==2.32.3
+python-on-whales>=0.71.0
+rfc3986-validator>=0.1.1 # Needed by python-on-whales
+types-pyjwt>=1.7.1 # Types for PyJWT
+
 # Linters / Formatters / Hooks
 pre-commit==4.2.0
 ruff==0.11.6
 black==24.3.0
-
-# Testing
-pytest==8.3.5
-pytest-cov==6.1.1
-requests==2.32.3
-python-on-whales
