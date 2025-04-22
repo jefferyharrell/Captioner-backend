@@ -3,6 +3,7 @@
 # pyright: reportUnknownMemberType=false
 # pyright: reportAttributeAccessIssue=false
 import logging
+import os
 import time
 import uuid
 from collections.abc import Generator, Iterable
@@ -25,6 +26,19 @@ from app.main import app
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
+
+# List of environment variables to potentially pass to the container
+ENV_VARS_TO_PASS = [
+    "BACKEND_PASSWORD",
+    "JWT_SECRET_KEY",
+    "STORAGE_TYPE",
+    "DROPBOX_APP_KEY",
+    "DROPBOX_APP_SECRET",
+    "DROPBOX_REFRESH_TOKEN",
+    "DROPBOX_OAUTH_ENABLED",
+    "DROPBOX_TOKEN",
+    # Add any other relevant variables here
+]
 
 # Use an in-memory SQLite database for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -249,22 +263,34 @@ def docker_image(docker: DockerClient) -> Generator[str, None, None]:
 def live_server_url(
     docker: DockerClient, docker_image: str
 ) -> Generator[str, None, None]:
-    """Start the backend app in a Docker container for a test function."""
+    """Build and start the backend app in a Docker container for the test session."""
     container_run_result: Container | str | Iterable[tuple[str, bytes]] | None = None
     container: Container | None = None
     container_name = f"captioner-test-container-{uuid.uuid4()}"
     base_url: str | None = None
 
+    # Prepare environment variables to pass from host if they exist
+    container_envs: dict[str, str] = {}
+    for var_name in ENV_VARS_TO_PASS:
+        value = os.getenv(var_name)
+        if value is not None:
+            container_envs[var_name] = value
+            logger.info("Passing env var to container: %s", var_name)
+
     try:
         logger.info(
-            "Starting container '%s' from image '%s'...", container_name, docker_image
+            "Starting container '%s' from image '%s'... with envs: %s",
+            container_name,
+            docker_image,
+            list(container_envs.keys()),
         )
         container_run_result = docker.run(
             image=docker_image,
             detach=True,
-            publish=[(8000,)],
+            publish=[(8000,)],  # Map container port 8000 to a random host port
             remove=False,
             name=container_name,
+            envs=container_envs,  # Pass the collected environment variables
         )
 
         if not isinstance(container_run_result, Container):
