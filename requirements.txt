@@ -9,3 +9,4 @@ psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
 pyjwt[crypto]
+requests==2.32.3
