@@ -16,5 +16,5 @@ class PhotoResponse(BaseModel):
     description: str | None
 
 
-class DescriptionUpdateRequest(BaseModel):
+class MetadataUpdateRequest(BaseModel):
     description: str

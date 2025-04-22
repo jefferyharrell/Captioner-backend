@@ -11,7 +11,7 @@ from starlette.status import HTTP_404_NOT_FOUND
 
 from app.dao import PhotoDAO
 from app.deps import get_db
-from app.schemas import DescriptionUpdateRequest, PhotoListResponse, PhotoResponse
+from app.schemas import MetadataUpdateRequest, PhotoListResponse, PhotoResponse
 
 router = APIRouter()
 
@@ -100,7 +100,7 @@ def get_photo(
 def patch_photo_metadata(
     photo_id: int,
     db: Annotated[Session, Depends(get_db)],
-    body: Annotated[DescriptionUpdateRequest, Body(...)],
+    body: Annotated[MetadataUpdateRequest, Body(...)],
 ) -> JSONResponse | PhotoResponse:
     try:
         dao = PhotoDAO(db)
