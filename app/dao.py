@@ -23,18 +23,18 @@ class PhotoDAO:
             .all()
         )
 
-    def create(self, object_key: str, caption: str | None = None) -> Photo:
-        photo = Photo(object_key=object_key, caption=caption)
+    def create(self, object_key: str, description: str | None = None) -> Photo:
+        photo = Photo(object_key=object_key, description=description)
         self.db.add(photo)
         self.db.commit()
         self.db.refresh(photo)
         return photo
 
-    def update_caption(self, photo_id: int, caption: str) -> Photo | None:
+    def update_description(self, photo_id: int, description: str) -> Photo | None:
         photo = self.get(photo_id)
         if photo is None:
             return None
-        photo.caption = caption
+        photo.description = description
         self.db.commit()
         self.db.refresh(photo)
         return photo

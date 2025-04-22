@@ -11,7 +11,7 @@ from starlette.status import HTTP_404_NOT_FOUND
 
 from app.dao import PhotoDAO
 from app.deps import get_db
-from app.schemas import CaptionUpdateRequest, PhotoListResponse, PhotoResponse
+from app.schemas import DescriptionUpdateRequest, PhotoListResponse, PhotoResponse
 
 router = APIRouter()
 
@@ -91,10 +91,8 @@ def get_photo(
     return PhotoResponse(
         id=photo.id,
         object_key=photo.object_key,
-        caption=photo.caption,
+        description=photo.description,
     )
-
-
 
 
 @router.patch("/photos/{photo_id}/caption", response_model=PhotoResponse)
@@ -102,11 +100,11 @@ def get_photo(
 def patch_photo_caption(
     photo_id: int,
     db: Annotated[Session, Depends(get_db)],
-    body: Annotated[CaptionUpdateRequest, Body(...)],
+    body: Annotated[DescriptionUpdateRequest, Body(...)],
 ) -> JSONResponse | PhotoResponse:
     try:
         dao = PhotoDAO(db)
-        photo = dao.update_caption(photo_id, body.caption)
+        photo = dao.update_description(photo_id, body.description)
     except OperationalError:
         return JSONResponse(
             status_code=HTTP_404_NOT_FOUND,
@@ -125,5 +123,5 @@ def patch_photo_caption(
     return PhotoResponse(
         id=photo.id,
         object_key=photo.object_key,
-        caption=photo.caption,
+        description=photo.description,
     )

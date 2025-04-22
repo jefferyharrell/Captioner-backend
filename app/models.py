@@ -11,4 +11,4 @@ class Photo(Base):
     object_key: Mapped[str] = mapped_column(
         String, unique=True, index=True, nullable=False
     )
-    caption: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
