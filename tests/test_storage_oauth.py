@@ -8,6 +8,7 @@ from app.storage_dropbox import DropboxStorage, DropboxStorageError
 OAUTH_TOKEN_URL = "https://api.dropbox.com/oauth2/token"  # noqa: S105
 DUMMY_ACCESS_TOKEN = "test-access-token-123"  # noqa: S105
 
+
 @pytest.fixture
 def dropbox_oauth_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DROPBOX_APP_KEY", "dummy-app-key")
@@ -16,12 +17,14 @@ def dropbox_oauth_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DROPBOX_OAUTH_ENABLED", "1")
     monkeypatch.delenv("DROPBOX_TOKEN", raising=False)  # Ensure legacy token is not set
 
+
 def mock_oauth_token_success(
     _url: str, _headers: dict[str, str] | None, _data: dict[str, object] | None
 ) -> object:
     class MockResponse:
         def __init__(self) -> None:
             self.status_code = 200
+
         def json(self) -> dict[str, object]:
             return {
                 "access_token": DUMMY_ACCESS_TOKEN,
@@ -30,6 +33,7 @@ def mock_oauth_token_success(
             }
 
     return MockResponse()
+
 
 def mock_oauth_token_failure(
     _url: str, _headers: dict[str, str] | None, _data: dict[str, object] | None
@@ -44,6 +48,7 @@ def mock_oauth_token_failure(
 
     return MockResponse()
 
+
 @pytest.mark.usefixtures("dropbox_oauth_env")
 def test_dropbox_oauth_token_refresh_and_api_use(
     monkeypatch: pytest.MonkeyPatch,
@@ -52,6 +57,7 @@ def test_dropbox_oauth_token_refresh_and_api_use(
     Test DropboxStorage obtains a new access token using OAuth 2.0 refresh flow and
     uses it for API calls.
     """
+
     # Patch requests.post to return a new access token on token endpoint, and a dummy
     # API response for Dropbox API. This ensures the backend uses the refreshed token
     # for Dropbox API calls.
@@ -65,6 +71,7 @@ def test_dropbox_oauth_token_refresh_and_api_use(
     ) -> object:
         if url == OAUTH_TOKEN_URL:
             return mock_oauth_token_success(url, None, data)
+
         class MockAPIResponse:
             def __init__(self) -> None:
                 self.status_code = 200
@@ -92,6 +99,7 @@ def test_dropbox_oauth_token_refresh_failure(
     """
     Test DropboxStorage raises error if OAuth token refresh fails.
     """
+
     def mock_post(
         url: str,
         headers: dict[str, str] | None = None,
@@ -102,9 +110,7 @@ def test_dropbox_oauth_token_refresh_failure(
     ) -> object:
         if url == OAUTH_TOKEN_URL:
             return mock_oauth_token_failure(url, headers, data)
-        msg = (
-            "No Dropbox API call should be attempted if token refresh fails"
-        )
+        msg = "No Dropbox API call should be attempted if token refresh fails"
         raise AssertionError(msg)
 
     monkeypatch.setattr(requests, "post", mock_post)
@@ -137,6 +143,7 @@ def test_dropbox_access_token_never_written_to_disk(
     Ensure access token is never written to disk (simulate by checking for token in
     temp dir after API call).
     """
+
     def mock_post(
         url: str,
         headers: dict[str, str] | None = None,
@@ -147,14 +154,18 @@ def test_dropbox_access_token_never_written_to_disk(
     ) -> object:
         if url == OAUTH_TOKEN_URL:
             return mock_oauth_token_success(url, headers, data)
+
         class MockAPIResponse:
             def __init__(self) -> None:
                 self.status_code = 200
+
             def json(self) -> dict[str, object]:
                 return {"entries": [], "has_more": False}
+
             @property
             def content(self) -> bytes:
                 return b"fake-bytes"
+
         return MockAPIResponse()
 
     monkeypatch.setattr(requests, "post", mock_post)

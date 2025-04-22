@@ -60,6 +60,7 @@ def client(session: Session) -> Generator[TestClient, None, None]:
 
 # --- Helper Functions for Docker Fixture ---
 
+
 def _get_container_host_port(docker: DockerClient, container_name: str) -> str | None:
     """Safely get the host port mapped to container port 8000."""
     host_port: str | None = None
@@ -83,9 +84,7 @@ def _get_container_host_port(docker: DockerClient, container_name: str) -> str |
     else:
         if host_port:
             return host_port
-        logger.warning(
-            "Port 8000/tcp not found/mapped in %s.", container_name
-        )
+        logger.warning("Port 8000/tcp not found/mapped in %s.", container_name)
         return None
 
 
@@ -106,7 +105,9 @@ def _wait_for_server_ready(base_url: str, max_wait: int = 30) -> None:
                     status_err.response.status_code,
                 )
             except (
-                httpx.ConnectError, httpx.TimeoutException, httpx.ReadTimeout
+                httpx.ConnectError,
+                httpx.TimeoutException,
+                httpx.ReadTimeout,
             ) as http_err:
                 logger.info(
                     "Server at %s not ready yet (%s), waiting...",
@@ -114,17 +115,13 @@ def _wait_for_server_ready(base_url: str, max_wait: int = 30) -> None:
                     http_err.__class__.__name__,
                 )
             except Exception:
-                logger.exception(
-                    "Unexpected health check error for %s", check_url
-                )
+                logger.exception("Unexpected health check error for %s", check_url)
             else:
                 logger.info("Server at %s is ready.", base_url)
                 return
             time.sleep(1)
 
-    pytest.fail(
-        f"Server at {base_url} did not become ready within {max_wait} seconds."
-    )
+    pytest.fail(f"Server at {base_url} did not become ready within {max_wait} seconds.")
 
 
 def _log_container_output(container: Container, container_name: str) -> None:
@@ -153,9 +150,7 @@ def _log_container_output(container: Container, container_name: str) -> None:
 
 
 def _cleanup_container(
-    docker: DockerClient,
-    container: Container | None,
-    container_name: str
+    docker: DockerClient, container: Container | None, container_name: str
 ) -> None:
     """Stop and remove the specified Docker container, handling errors."""
     if container:
@@ -203,6 +198,7 @@ def _cleanup_container(
 
 
 # --- Docker Fixtures ---
+
 
 @pytest.fixture(scope="session")
 def docker() -> DockerClient:
@@ -261,9 +257,7 @@ def live_server_url(
 
     try:
         logger.info(
-            "Starting container '%s' from image '%s'...",
-            container_name,
-            docker_image
+            "Starting container '%s' from image '%s'...", container_name, docker_image
         )
         container_run_result = docker.run(
             image=docker_image,
@@ -276,7 +270,7 @@ def live_server_url(
         if not isinstance(container_run_result, Container):
             logger.error(
                 "docker.run did not return a Container object. Result: %s",
-                type(container_run_result)
+                type(container_run_result),
             )
             pytest.fail("Failed to start container properly.")
         else:
@@ -287,9 +281,7 @@ def live_server_url(
             pytest.fail(f"Could not determine host port for container {container_name}")
 
         base_url = f"http://localhost:{host_port_str}"
-        logger.info(
-            "Container %s started, accessible at %s", container_name, base_url
-        )
+        logger.info("Container %s started, accessible at %s", container_name, base_url)
 
         _wait_for_server_ready(base_url)
 
@@ -299,9 +291,7 @@ def live_server_url(
         logger.exception("Docker error during container setup for %s", container_name)
         pytest.fail(f"Docker error for container {container_name}")
     except Exception:
-        logger.exception(
-            "Unexpected error setting up container %s", container_name
-        )
+        logger.exception("Unexpected error setting up container %s", container_name)
         pytest.fail(f"Unexpected error setting up container {container_name}")
 
     finally:

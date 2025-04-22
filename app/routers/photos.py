@@ -15,6 +15,7 @@ from app.schemas import MetadataUpdateRequest, PhotoListResponse, PhotoResponse
 
 router = APIRouter()
 
+
 # Helper function for test error handling
 def handle_db_errors(func: Callable[..., object]) -> Callable[..., object]:
     @wraps(func)
@@ -30,7 +31,9 @@ def handle_db_errors(func: Callable[..., object]) -> Callable[..., object]:
                     content={"detail": str(exc)},
                 )
             raise
+
     return wrapper
+
 
 @router.get("/photos", response_model=PhotoListResponse)
 @handle_db_errors

@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 from sqlalchemy import create_engine, inspect
@@ -21,11 +22,13 @@ def in_memory_db() -> Generator[Session, None, None]:
         yield session
     # No explicit teardown needed; in-memory DB is discarded
 
+
 def test_photo_table_schema(in_memory_db: Session) -> None:  # noqa: ARG001
     # Ensure the table exists and columns are as expected
-    columns = inspect(Photo).c  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
-    column_names: set[str] = {c.name for c in columns.values()}  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    columns: Any = inspect(Photo).c  # type: ignore[no-redef]
+    column_names: set[str] = {c.name for c in columns.values()}  # type: ignore[attr-defined]
     assert {"id", "object_key", "description"}.issubset(column_names)
+
 
 def test_insert_and_query_photo(in_memory_db: Session) -> None:
     photo = Photo(object_key="photos/foo.jpg", description="A description")
@@ -36,6 +39,7 @@ def test_insert_and_query_photo(in_memory_db: Session) -> None:
     assert found.object_key == "photos/foo.jpg"
     assert found.description == "A description"
 
+
 def test_unique_object_key_constraint(in_memory_db: Session) -> None:
     photo1 = Photo(object_key="photos/bar.jpg")
     photo2 = Photo(object_key="photos/bar.jpg")
@@ -44,6 +48,7 @@ def test_unique_object_key_constraint(in_memory_db: Session) -> None:
     in_memory_db.add(photo2)
     with pytest.raises(IntegrityError):
         in_memory_db.commit()
+
 
 def test_nullable_description(in_memory_db: Session) -> None:
     photo = Photo(object_key="photos/baz.jpg", description=None)

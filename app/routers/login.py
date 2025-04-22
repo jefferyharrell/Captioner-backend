@@ -8,8 +8,10 @@ from app.utils.jwt import create_access_token
 
 router = APIRouter()
 
+
 class LoginRequest(BaseModel):
     password: str
+
 
 @router.post("/login", summary="Login", response_model=dict)
 async def login(body: LoginRequest) -> JSONResponse:

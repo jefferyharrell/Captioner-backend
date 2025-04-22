@@ -1,7 +1,12 @@
 [tool.ruff]
 target-version = "py312"
 line-length = 88
-exclude = ["typings"]
+exclude = ["typings", ".venv"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+exclude = "/(typings|.venv|node_modules)/"
 
 [tool.ruff.lint]
 select = ["ALL"]

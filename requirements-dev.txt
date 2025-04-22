@@ -3,6 +3,7 @@
 # Linters / Formatters / Hooks
 pre-commit==4.2.0
 ruff==0.11.6
+black==24.3.0
 
 # Testing
 pytest==8.3.5

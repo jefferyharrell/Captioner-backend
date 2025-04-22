@@ -42,6 +42,7 @@ def test_get_photos_returns_photo_ids() -> None:
     data = response.json()
     assert data["photo_ids"] == [photo1.id, photo2.id]
 
+
 def test_get_photos_empty() -> None:
     engine = create_engine(
         "sqlite:///file:memdb_get_photos_empty?mode=memory&cache=shared&uri=true",
@@ -59,6 +60,7 @@ def test_get_photos_empty() -> None:
     assert response.status_code == HTTP_200_OK
     data = response.json()
     assert data["photo_ids"] == []
+
 
 def test_get_photos_pagination() -> None:
     engine = create_engine(
@@ -82,13 +84,16 @@ def test_get_photos_pagination() -> None:
     data = response.json()
     assert data["photo_ids"] == [6, 7, 8, 9, 10]
 
+
 def test_get_photos_storage_error() -> None:
     # Simulate DB connection error
     class BoomError(Exception):
         pass
+
     def bad_session() -> NoReturn:
         error_msg: str = "db error"
         raise BoomError(error_msg)
+
     # Override DB dependency to simulate error
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
@@ -96,6 +101,7 @@ def test_get_photos_storage_error() -> None:
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "detail" in data
+
 
 # Tests for GET /photos/{id}
 def test_get_photo_by_id_success() -> None:
@@ -132,6 +138,7 @@ def test_get_photo_by_id_success() -> None:
     assert data["object_key"] == "bar.jpg"
     assert data["description"] == "Bar"
 
+
 def test_get_photo_by_id_not_found() -> None:
     engine = create_engine(
         "sqlite:///file:memdb_get_photo_by_id_not_found?mode=memory&cache=shared&uri=true",
@@ -150,18 +157,22 @@ def test_get_photo_by_id_not_found() -> None:
     data = response.json()
     assert data["detail"] == "Photo not found"
 
+
 def test_get_photo_by_id_storage_error() -> None:
     class BoomError(Exception):
         pass
+
     def bad_session() -> NoReturn:
         error_msg: str = "db error"
         raise BoomError(error_msg)
+
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
     response = client.get("/photos/1")
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "detail" in data
+
 
 def test_get_photo_by_id_generic_exception(
     client: TestClient,
@@ -170,6 +181,7 @@ def test_get_photo_by_id_generic_exception(
     # Patch PhotoDAO.get to raise a generic exception
     class GenericError(Exception):
         pass
+
     engine = create_engine(
         "sqlite:///file:memdb_get_photo_by_id_generic_exception?mode=memory&cache=shared&uri=true",
         connect_args={"check_same_thread": False},
@@ -183,9 +195,11 @@ def test_get_photo_by_id_generic_exception(
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
     dao.create(object_key="foo.jpg", description=None)
+
     def raise_generic_error(_self: PhotoDAO, _photo_id: int) -> Never:
         msg = "something went wrong!"
         raise GenericError(msg)
+
     monkeypatch.setattr(PhotoDAO, "get", raise_generic_error)
     client = TestClient(app)
     response = client.get("/photos/1")
@@ -193,14 +207,11 @@ def test_get_photo_by_id_generic_exception(
     data = response.json()
     assert "something went wrong!" in data["detail"]
 
+
 def test_patch_photo_description_success() -> None:
     # Use a shared in-memory SQLite DB
-    db_url = (
-        "sqlite:///file:memdb_patch_description?mode=memory&cache=shared&uri=true"
-    )
-    engine = create_engine(
-        db_url, connect_args={"check_same_thread": False}
-    )
+    db_url = "sqlite:///file:memdb_patch_description?mode=memory&cache=shared&uri=true"
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     session_maker = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     session = session_maker()
@@ -231,6 +242,7 @@ def test_patch_photo_description_success() -> None:
     session.close()
     engine.dispose()
 
+
 def test_patch_photo_description_not_found() -> None:
     engine = create_engine(
         "sqlite:///file:memdb_patch_photo_description_not_found?mode=memory&cache=shared&uri=true",
@@ -244,25 +256,29 @@ def test_patch_photo_description_not_found() -> None:
     )()
     app.dependency_overrides[get_db] = lambda: session
     client = TestClient(app)
-    response = client.patch("/photos/123/metadata",
-                            json={"description": "Doesn't exist"})
+    response = client.patch(
+        "/photos/123/metadata", json={"description": "Doesn't exist"}
+    )
     assert response.status_code == HTTP_404_NOT_FOUND
     data = response.json()
     assert data["detail"] == "Photo not found"
 
+
 def test_patch_photo_description_db_error() -> None:
     class BoomError(Exception):
         pass
+
     def bad_session() -> NoReturn:
         msg = "db error"
         raise BoomError(msg)
+
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
-    response = client.patch("/photos/1/metadata",
-                            json={"description": "irrelevant"})
+    response = client.patch("/photos/1/metadata", json={"description": "irrelevant"})
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     data = response.json()
     assert "detail" in data
+
 
 def test_patch_photo_description_operational_error(
     client: TestClient,
@@ -271,9 +287,11 @@ def test_patch_photo_description_operational_error(
     """Test patch_photo_caption handles OperationalError gracefully."""
     # Mock PhotoDAO.update_description to raise OperationalError
     from sqlalchemy.exc import OperationalError
+
     error_message = "mock db error"
     params_value = "params"
     orig_exception = BaseException("original db context")
+
     def mock_update_description(
         _self: object, _photo_id: int, _description: str
     ) -> Never:
@@ -281,12 +299,14 @@ def test_patch_photo_description_operational_error(
 
     monkeypatch.setattr(PhotoDAO, "update_description", mock_update_description)
 
-    response = client.patch("/photos/1/metadata",
-                            json={"description": "new description"})
+    response = client.patch(
+        "/photos/1/metadata", json={"description": "new description"}
+    )
     # The implementation returns 404 when OperationalError occurs
     assert response.status_code == HTTP_404_NOT_FOUND
     # Just check that there's a detail message, exact content may vary
     assert "detail" in response.json()
+
 
 def test_patch_photo_description_generic_error(
     client: TestClient,
@@ -311,6 +331,7 @@ def test_patch_photo_description_generic_error(
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     # Just verify there's a detail field in the response, content may vary
     assert "detail" in response.json()
+
 
 SHUFFLE_TOTAL = 5
 SHUFFLE_LIMIT = 3
@@ -346,10 +367,7 @@ def test_get_photos_shuffled_respects_limit() -> None:
     session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
     app.dependency_overrides[get_db] = lambda: session
     dao = PhotoDAO(session)
-    [
-        dao.create(object_key=f"img_{i}.jpg", description=None)
-        for i in range(10)
-    ]
+    [dao.create(object_key=f"img_{i}.jpg", description=None) for i in range(10)]
     client = TestClient(app)
     response = client.get(f"/photos/shuffled?limit={SHUFFLE_LIMIT}")
     assert response.status_code == HTTP_200_OK
@@ -400,9 +418,11 @@ def test_get_photos_shuffled_empty_db() -> None:
 def test_get_photos_shuffled_storage_error() -> None:
     class BoomError(Exception):
         pass
+
     def bad_session() -> NoReturn:
         msg = "db error"
         raise BoomError(msg)
+
     app.dependency_overrides[get_db] = bad_session
     client = TestClient(app)
     response = client.get(f"/photos/shuffled?limit={SHUFFLE_LIMIT}")
@@ -410,12 +430,14 @@ def test_get_photos_shuffled_storage_error() -> None:
     data = response.json()
     assert "detail" in data
 
+
 # Tests for handle_db_errors decorator via routes
 def test_get_photos_decorator_test_app_error(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test handle_db_errors catches test_app exception from DAO via route."""
+
     class CustomTestAppError(Exception):
         __module__ = "test_app_module"
 
@@ -430,7 +452,9 @@ def test_get_photos_decorator_test_app_error(
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "detail" in response.json()
 
+
 # Tests for GET /photos
+
 
 def test_patch_photo_description_invalid_payload(client: TestClient) -> None:
     """Test updating with invalid payload returns 422."""
@@ -459,14 +483,9 @@ def test_get_photos_shuffled_success(
             self.id = photo_id
 
     # Create mock photos with the desired IDs
-    mock_photos = [
-        MockPhoto(photo_id)
-        for photo_id in mock_ids
-    ]
+    mock_photos = [MockPhoto(photo_id) for photo_id in mock_ids]
 
-    def mock_list(
-        _self: object, **kwargs: object  # noqa: ARG001
-    ) -> list[MockPhoto]:
+    def mock_list(_self: object, **kwargs: object) -> list[MockPhoto]:  # noqa: ARG001
         return mock_photos
 
     monkeypatch.setattr(PhotoDAO, "list", mock_list)

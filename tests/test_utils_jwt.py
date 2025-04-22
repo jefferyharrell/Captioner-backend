@@ -24,4 +24,5 @@ def test_decode_invalid_token(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(HTTPException) as excinfo:
         decode_access_token("notatoken")
     from fastapi import status
+
     assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
