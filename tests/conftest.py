@@ -245,7 +245,7 @@ def docker_image(docker: DockerClient) -> Generator[str, None, None]:
                 logger.warning("Failed to remove Docker image %s: %s", image_tag, e)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def live_server_url(
     docker: DockerClient, docker_image: str
 ) -> Generator[str, None, None]:
