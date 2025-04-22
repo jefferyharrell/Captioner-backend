@@ -31,10 +31,7 @@ def create_access_token(
     )
     to_encode["exp"] = expire  # PyJWT handles timestamp conversion
     # PyJWT encode function
-    encoded_jwt_bytes = jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
-    # Decode bytes to string (Re-added for Pyright)
-    # Return the decoded bytes as a string
-    return encoded_jwt_bytes.decode("utf-8")
+    return jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)  # type: ignore[return-value] # Pyright expects bytes, but runtime gives str
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
