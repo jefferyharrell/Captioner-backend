@@ -16,7 +16,9 @@ class DropboxStorage(PhotoStorage):
     """
 
     _DROPBOX_LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
-    _DROPBOX_LIST_FOLDER_CONTINUE_URL = "https://api.dropboxapi.com/2/files/list_folder/continue"
+    _DROPBOX_LIST_FOLDER_CONTINUE_URL = (
+        "https://api.dropboxapi.com/2/files/list_folder/continue"
+    )
     _DROPBOX_DOWNLOAD_URL = "https://content.dropboxapi.com/2/files/download"
     _SUCCESS_CODE = 200
     _NOT_FOUND_CODE = 409

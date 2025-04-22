@@ -12,18 +12,17 @@ class PhotoStorage(ABC):
     """
 
     @abstractmethod
-    def list_photos(self) -> list[str]:
-        ...
+    def list_photos(self) -> list[str]: ...
 
     @abstractmethod
-    def get_photo(self, identifier: str) -> bytes:
-        ...
+    def get_photo(self, identifier: str) -> bytes: ...
 
 
 def get_storage_backend() -> PhotoStorage:
     backend = os.getenv("STORAGE_BACKEND", "dropbox").strip().lower()
     if backend in ("", "dropbox"):
         from app.storage_dropbox import DropboxStorage
+
         return DropboxStorage()
     msg = f"Unknown storage backend: {backend}"
     raise ValueError(msg)

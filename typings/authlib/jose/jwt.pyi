@@ -6,7 +6,6 @@ def encode(
     key: str,
     check: bool = True,
 ) -> Any: ...  # noqa: ANN401
-
 def decode(
     token: str,
     key: str,
