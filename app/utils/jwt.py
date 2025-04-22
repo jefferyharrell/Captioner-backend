@@ -4,10 +4,11 @@ JWT utility functions for encoding and decoding tokens.
 
 import os
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
-from authlib.jose import JoseError, jwt
+import jwt
 from fastapi import HTTPException, status
+from jwt import ExpiredSignatureError, InvalidTokenError, PyJWTError
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
@@ -28,11 +29,12 @@ def create_access_token(
     expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode["exp"] = int(expire.timestamp())
-    token = cast("str | bytes", jwt.encode({"alg": ALGORITHM}, to_encode, get_secret_key()))  # type: ignore[reportUnknownMemberType]  # noqa: E501
-    if isinstance(token, bytes):
-        return token.decode("utf-8")
-    return str(token)
+    to_encode["exp"] = expire  # PyJWT handles timestamp conversion
+    # PyJWT encode function
+    encoded_jwt_bytes = jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
+    # Decode bytes to string (Re-added for Pyright)
+    # Return the decoded bytes as a string
+    return encoded_jwt_bytes.decode("utf-8")
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
@@ -40,11 +42,12 @@ def decode_access_token(token: str) -> dict[str, Any]:
     Decode a JWT token and return the claims dict. Raises 401 if invalid.
     """
     try:
-        claims = cast("Any", jwt.decode(token, get_secret_key()))  # type: ignore[reportUnknownMemberType]
-        claims.validate()
-    except JoseError as exc:
+        # PyJWT decode function with algorithm validation
+        # Return directly to fix Ruff RET504 and TRY300
+        return jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+    except (ExpiredSignatureError, InvalidTokenError, PyJWTError) as exc:
+        # Catch specific PyJWT errors
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         ) from exc
-    return claims

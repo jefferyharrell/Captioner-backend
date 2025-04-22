@@ -4,8 +4,8 @@ uvicorn==0.34.2
 sqlalchemy==2.0.40
 python-dotenv==1.1.0
 pydantic==2.11.3
-authlib==1.3.0
 httpx==0.28.1
 psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
+pyjwt[crypto]
