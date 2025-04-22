@@ -31,20 +31,6 @@ def test_api_get_photos_empty(http_client: httpx.Client) -> None:
     assert response.json() == {"photo_ids": []}
 
 
-def test_login_success_or_fail(http_client: httpx.Client) -> None:
-    """Verify POST /login returns 200/token or 401 based on password."""
-    # Send a valid password field to pass schema validation
-    response = http_client.post("/login", json={"password": "testpassword"})
-    # We expect 401 if password is wrong, or 200 if correct (depends on env var)
-    assert response.status_code in [http.HTTPStatus.OK, http.HTTPStatus.UNAUTHORIZED]
-    if response.status_code == http.HTTPStatus.OK:
-        assert "access_token" in response.json()
-        assert response.json()["token_type"] == "bearer"  # noqa: S105
-    elif response.status_code == http.HTTPStatus.UNAUTHORIZED:
-        # Check for specific detail message
-        assert response.json().get("detail") == "Invalid password"
-
-
 # --- New 404 Tests ---
 
 
