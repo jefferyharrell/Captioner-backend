@@ -35,7 +35,7 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
       - name: Install all Python dependencies (runtime and dev)
-        run: .venv/bin/pip install -r requirements.txt
+        run: .venv/bin/pip install -r requirements-dev.txt
       - name: Run pre-commit hooks
         run: .venv/bin/pre-commit run --all-files
 
