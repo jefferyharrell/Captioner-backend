@@ -95,9 +95,9 @@ def get_photo(
     )
 
 
-@router.patch("/photos/{photo_id}/description", response_model=PhotoResponse)
+@router.patch("/photos/{photo_id}/metadata", response_model=PhotoResponse)
 @handle_db_errors
-def patch_photo_caption(
+def patch_photo_metadata(
     photo_id: int,
     db: Annotated[Session, Depends(get_db)],
     body: Annotated[DescriptionUpdateRequest, Body(...)],
