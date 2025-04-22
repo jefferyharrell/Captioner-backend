@@ -12,6 +12,16 @@ per-file-ignores = {"tests/*.py" = ["S101"]}
 # This section is required if you want to use Ruff as a formatter (not needed for lint-only)
 # If you want Ruff to only error, not fix, just use the linter (as in your config)
 
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+markers = [
+    "e2e: marks tests as end-to-end tests requiring Docker"
+]
+
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
@@ -23,3 +33,11 @@ exclude = ["node_modules", ".venv"]
 extraPaths = ["typings"]
 venvPath = "."
 venv = ".venv"
+
+# File-specific overrides to silence persistent errors in conftest.py
+[[tool.pyright.fileOptions]]
+  file = "tests/conftest.py"
+  reportUnknownVariableType = "none"
+  reportUnknownArgumentType = "none"
+  reportUnknownMemberType = "none"
+  reportAttributeAccessIssue = "none"

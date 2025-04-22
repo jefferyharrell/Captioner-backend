@@ -1,0 +1,11 @@
+-r requirements.txt
+
+# Linters / Formatters / Hooks
+pre-commit==4.2.0
+ruff==0.11.6
+
+# Testing
+pytest==8.3.5
+pytest-cov==6.1.1
+requests==2.32.3
+python-on-whales
