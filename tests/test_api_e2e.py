@@ -1,35 +1,67 @@
 import http
+from collections.abc import Generator
 
 import httpx
 import pytest
 
-# Mark all tests in this module as 'e2e'
 pytestmark = pytest.mark.e2e
 
 
-def test_api_docs_reachable(live_server_url: str) -> None:
+@pytest.fixture
+def http_client(live_server_url: str) -> Generator[httpx.Client, None, None]:
+    """Provides an httpx client configured for the live server."""
+    client = httpx.Client(base_url=live_server_url)
+    yield client
+    client.close()
+
+
+def test_api_docs_reachable(http_client: httpx.Client) -> None:
     """Verify the API docs endpoint (/docs) is reachable and returns HTML."""
-    client = httpx.Client(base_url=live_server_url)
-    try:
-        response = client.get("/docs")
-        # Raise an exception for bad status codes (4xx or 5xx)
-        response.raise_for_status()
-        assert response.status_code == http.HTTPStatus.OK
-        # Check for some content indicating it's the Swagger UI
-        assert "<title>FastAPI - Swagger UI</title>" in response.text
-    finally:
-        client.close()
+    response = http_client.get("/docs")
+    response.raise_for_status()
+    assert response.status_code == http.HTTPStatus.OK
+    assert "<title>FastAPI - Swagger UI</title>" in response.text
 
 
-def test_api_get_photos_empty(live_server_url: str) -> None:
+def test_api_get_photos_empty(http_client: httpx.Client) -> None:
     """Verify that GET /photos returns an empty list initially."""
-    # Note: This assumes the container starts with an empty/no database.
-    # If the Dockerfile initialized data, this test would need adjustment.
-    client = httpx.Client(base_url=live_server_url)
-    try:
-        response = client.get("/photos")
-        response.raise_for_status()
-        assert response.status_code == http.HTTPStatus.OK
-        assert response.json() == {"photo_ids": []}
-    finally:
-        client.close()
+    response = http_client.get("/photos")
+    response.raise_for_status()
+    assert response.status_code == http.HTTPStatus.OK
+    assert response.json() == {"photo_ids": []}
+
+
+def test_login_success_or_fail(http_client: httpx.Client) -> None:
+    """Verify POST /login returns 200/token or 401 based on password."""
+    # Send a valid password field to pass schema validation
+    response = http_client.post("/login", json={"password": "testpassword"})
+    # We expect 401 if password is wrong, or 200 if correct (depends on env var)
+    assert response.status_code in [http.HTTPStatus.OK, http.HTTPStatus.UNAUTHORIZED]
+    if response.status_code == http.HTTPStatus.OK:
+        assert "access_token" in response.json()
+        assert response.json()["token_type"] == "bearer"  # noqa: S105
+    elif response.status_code == http.HTTPStatus.UNAUTHORIZED:
+        # Check for specific detail message
+        assert response.json().get("detail") == "Invalid password"
+
+
+# --- New 404 Tests ---
+
+
+def test_get_nonexistent_photo_returns_404(http_client: httpx.Client) -> None:
+    """Verify GET /photos/{id} returns 404 for an ID that doesn't exist."""
+    non_existent_id = 999999  # Use an integer ID
+    response = http_client.get(f"/photos/{non_existent_id}")
+    assert response.status_code == http.HTTPStatus.NOT_FOUND
+    assert response.json().get("detail") == "Photo not found"
+
+
+def test_patch_nonexistent_photo_returns_404(http_client: httpx.Client) -> None:
+    """Verify PATCH /photos/{id}/metadata returns 404 for an ID that doesn't exist."""
+    non_existent_id = 999999  # Use an integer ID
+    response = http_client.patch(
+        f"/photos/{non_existent_id}/metadata",
+        json={"description": "New description"},  # Need valid body for PATCH
+    )
+    assert response.status_code == http.HTTPStatus.NOT_FOUND
+    assert response.json().get("detail") == "Photo not found"
